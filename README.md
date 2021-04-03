@@ -17,7 +17,7 @@
       "request": "launch",
       "module": "referee",
       "args": [
-        "google_me",
+        "rando",
         "google_me"
       ],
       "cwd": "${workspaceFolder}/src",
