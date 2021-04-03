@@ -28,22 +28,3 @@ class Board:
 
     def is_legal_location(self, loc):
         return loc in self.locations
-        # if loc not in self.locations:
-        #     return False
-
-        # return True
-
-
-    # def friends(self):
-    #     """
-    #     Return a list of all friendly pieces on the board
-    #     """
-    #     # friends = []
-    #     # for loc, ((rs, ps, ss), *_) in self.locations.items():
-    #     #     friends += rs * [loc] + ps * [loc] + ss * [loc]
-    #     # return friends
-    #     return [piece for pieces in self.locations.values() for piece in pieces]
-    
-    # def add_friend(self, piece):
-    #     (t, loc) = piece
-    #     self.locations[loc][0].append((t, loc))

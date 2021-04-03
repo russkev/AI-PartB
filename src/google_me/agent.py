@@ -6,8 +6,8 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from google_me.game_state import GameState
-from google_me.location import distance
+from state.game_state import GameState
+from state.location import distance
 
 import time
 

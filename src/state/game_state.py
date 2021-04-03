@@ -10,10 +10,8 @@ from itertools import product
 import numpy as np
 from random import randrange
 
-from google_me.board import Board
-from google_me.location import loc_add, loc_higher_than, loc_lower_than
-from referee.game import Game
-# from board import Board
+from state.board import Board
+from state.location import loc_add, loc_higher_than, loc_lower_than
 
 
 class GameState:
@@ -25,7 +23,8 @@ class GameState:
                      for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     # the if condition (r != 0 or c != 0) means that the piece must move - this does not hold after part A.
     # abs condition makes sure the column and row change happens in the same turn, instead of sequentially.
-    __slots__ = ("board","is_upper","friends","enemies","costs","hash","parent", "moves", "turn", "waiting_tokens")
+    __slots__ = ("is_upper", "friends", "enemies", "costs", "hash",
+                 "parent", "moves", "turn", "friend_waiting", "enemy_waiting")
 
     def __init__(self, *args, **kwargs):
         # self.board = Board()
@@ -37,7 +36,8 @@ class GameState:
         self.parent = None
         self.moves = None
         self.turn = 0
-        self.waiting_tokens = 0
+        self.friend_waiting = 0
+        self.enemy_waiting = 0
     
     def __copy_properties(self) -> "GameState":
         """
@@ -47,7 +47,7 @@ class GameState:
         new_state = GameState()
         new_state.is_upper = self.is_upper
         new_state.turn = self.turn
-        new_state.waiting_tokens = self.waiting_tokens
+        new_state.friend_waiting = self.friend_waiting
         return new_state
 
     def defeat_token(t):
@@ -77,7 +77,12 @@ class GameState:
         Pick a random move out of all the moves available to this `GameState`
         """
 
-        possible_moves = self.next_moves()
+        # possible_moves = self.next_moves()
+        possible_moves = GameState.__next_moves_for_side(
+            self.friends, 
+            self.friend_waiting, 
+            self.is_upper)
+        self.next_moves()
         piece = possible_moves[randrange(len(possible_moves))]
         return piece
 
@@ -155,7 +160,7 @@ class GameState:
         for existing_piece in existing_pieces:
             GameState.__append_loc_piece(updated_pieces, existing_piece, is_friend)
         if is_friend:
-            self.waiting_tokens += 1
+            self.friend_waiting += 1
 
     
     def __append_loc_piece(board_pieces, piece, is_friend):
@@ -211,37 +216,33 @@ class GameState:
         Return all possible moves that can be reached from the current `GameState`
 
         """
-        moves = self.__throw_moves() if self.waiting_tokens < GameState.MAX_TOKENS else []
-        for (_, loc) in self.friends:
-            slide_moves = self.__slide_moves(loc)
-            swing_moves = self.__swing_moves(loc, slide_moves)
+        friend_moves = GameState.__next_moves_for_side(
+            self.friends, 
+            self.friend_waiting, 
+            self.is_upper)
+        
+        enemy_moves = GameState.__next_moves_for_side(
+            self.enemies,
+            self.enemy_waiting,
+            not self.is_upper
+        )
+
+        all_states = list(product(friend_moves, enemy_moves))
+
+        return all_states
+    
+    def __next_moves_for_side(pieces, num_tokens_waiting, is_upper):
+
+        if num_tokens_waiting < GameState.MAX_TOKENS:
+            moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
+        else:
+            moves = []
+
+        for (_, loc) in pieces:
+            slide_moves = GameState.__slide_moves(loc)
+            swing_moves = GameState.__swing_moves(pieces, loc, slide_moves)
             moves += slide_moves + swing_moves
         return moves
-
-    
-
-
-        
-
-    def next_states(self) -> "list[GameState]":
-        """
-        Returns a list of the possible next states.
-
-        The upper and lower values are returned separately as there is only one copy of the lowers that is needed
-        """
-
-        moves = []
-        for (_, loc) in self.friends:
-            slide_moves = self.__slide_moves(loc)
-            swing_moves = self.__swing_moves(slide_moves, loc)
-            moves.append(slide_moves + swing_moves)
-        
-        # Product finds the cartesian product of the provided arguments
-        # Acts like a nested for loop
-        # (provided by itertools)
-        p = list(product(*moves))
-        return (self.__resolve_battles(p), p)
-
 
 
     # def set_state(self, pieces):
@@ -262,19 +263,19 @@ class GameState:
         """
         return len(self.enemies) == 0
 
-    def __throw_moves(self):
+    def __throw_moves(num_tokens_waiting, is_upper):
         """
         All possible throw moves
 
         Return tuple: ("THROW", token, location)
         """
-        if self.is_upper:
-            farthest_r = max(4 - self.waiting_tokens, -4)
+        if is_upper:
+            farthest_r = max(4 - num_tokens_waiting, -4)
             moves = [("THROW", t, loc) for t in ["r", "p", "s"] 
                         for loc in GameState.board.locations 
                         if not loc_lower_than(loc, farthest_r)]
         else:
-            farthest_r = min(-4 + self.waiting_tokens, 4)
+            farthest_r = min(-4 + num_tokens_waiting, 4)
             moves = [("THROW", t, loc) for t in ["r", "p", "s"]
                         for loc in GameState.board.locations 
                         if not loc_higher_than(loc, farthest_r)]
@@ -282,7 +283,7 @@ class GameState:
         return moves
 
 
-    def __slide_moves(self, loc):
+    def __slide_moves(loc):
         """
         All possible slide moves for a single location
 
@@ -297,7 +298,7 @@ class GameState:
 
         return result
 
-    def __swing_moves(self, curr_loc, slide_moves):
+    def __swing_moves(pieces, curr_loc, slide_moves):
         """
         All possible swing moves for a single piece
 
@@ -307,11 +308,11 @@ class GameState:
         pivots = {loc for (_, _, loc) in slide_moves}
 
 
-        for (_, friend_loc) in self.friends:
+        for (_, other_loc) in pieces:
             # a piece will not swing around itself because its current 
             # location is not in the pivots (of the swing)
-            if friend_loc in pivots:
-                for (_, _, swing_loc) in self.__slide_moves(friend_loc):
+            if other_loc in pivots:
+                for (_, _, swing_loc) in GameState.__slide_moves(other_loc):
                     if GameState.board.is_legal_location(swing_loc) \
                         and swing_loc not in pivots \
                         and swing_loc != curr_loc:
