@@ -1,6 +1,6 @@
 # Running
   - cd to `src/` folder
-  - run `python3 -m referee google_me google_me`
+  - run `python3 -m referee rando google_me`
 
 # Debugging
 ## Linux | VsCode Instructions
