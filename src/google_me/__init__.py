@@ -1,1 +1,1 @@
-from google_me.player import Player
+from rando.player import Player

@@ -1,4 +1,5 @@
-from strategy import random
+# won't be needed becuase we can import the player in the __init__ file.
+
 from state.game_state import GameState
 
 class Player:
@@ -28,7 +29,7 @@ class Player:
         # return next_states[randrange(len(next_states))]
 
 
-        return random.action(self.game_state)
+        # return random.action(self.game_state)
 
         # return self.game_state.generate_random_move()
     

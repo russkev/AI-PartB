@@ -19,12 +19,10 @@ class GameState:
     MAX_TOKENS = 9
     board = Board()
 
-    slide_options = [(r, q) for r in [-1, 0, 1]
-                     for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
+    slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     # the if condition (r != 0 or c != 0) means that the piece must move - this does not hold after part A.
     # abs condition makes sure the column and row change happens in the same turn, instead of sequentially.
-    __slots__ = ("is_upper", "friends", "enemies", "costs", "hash",
-                 "parent", "moves", "turn", "friend_waiting", "enemy_waiting")
+    __slots__ = ("is_upper", "friends", "enemies", "costs", "hash", "parent", "moves", "turn", "friend_waiting", "enemy_waiting")
 
     def __init__(self, *args, **kwargs):
         # self.board = Board()
