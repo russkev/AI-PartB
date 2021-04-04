@@ -1,3 +1,11 @@
+"""
+COMP30024 Artificial Intelligence
+Semester 1, 2021
+Project Part B
+David Peel 964682
+Kevin Russell 1084088
+"""
+
 def defeat_token(t):
         if t == 'r':
             return 's'

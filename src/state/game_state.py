@@ -7,8 +7,6 @@ Kevin Russell 1084088
 """
 
 from itertools import product
-import numpy as np
-from random import randrange
 
 from state.board import Board
 from state.location import loc_add, loc_higher_than, loc_lower_than
@@ -27,7 +25,7 @@ class GameState:
                 "enemy_waiting")
 
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.is_upper = True
         self.friends = []
         self.enemies = []
@@ -48,20 +46,6 @@ class GameState:
         new_state.friend_waiting = self.friend_waiting
         return new_state
 
-
-    def generate_random_move(self):
-        """
-        Pick a random move out of all the moves available to this `GameState`
-        """
-
-        # possible_moves = self.next_moves()
-        possible_moves = GameState.next_moves_for_side(
-            self.friends, 
-            self.friend_waiting, 
-            self.is_upper)
-        self.next_moves()
-        piece = possible_moves[randrange(len(possible_moves))]
-        return piece
 
     def update(self, enemy_move, friend_move):
         """
