@@ -19,12 +19,10 @@ class GameState:
     MAX_TOKENS = 9
     board = Board()
 
-    slide_options = [(r, q) for r in [-1, 0, 1]
-                     for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
+    slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     # the if condition (r != 0 or c != 0) means that the piece must move - this does not hold after part A.
     # abs condition makes sure the column and row change happens in the same turn, instead of sequentially.
-    __slots__ = ("is_upper", "friends", "enemies", "costs", "hash",
-                 "parent", "moves", "turn", "friend_waiting", "enemy_waiting")
+    __slots__ = ("is_upper", "friends", "enemies", "costs", "hash", "parent", "moves", "turn", "friend_waiting", "enemy_waiting")
 
     def __init__(self, *args, **kwargs):
         # self.board = Board()
@@ -78,7 +76,7 @@ class GameState:
         """
 
         # possible_moves = self.next_moves()
-        possible_moves = GameState.__next_moves_for_side(
+        possible_moves = GameState.next_moves_for_side(
             self.friends, 
             self.friend_waiting, 
             self.is_upper)
@@ -216,12 +214,12 @@ class GameState:
         Return all possible moves that can be reached from the current `GameState`
 
         """
-        friend_moves = GameState.__next_moves_for_side(
+        friend_moves = GameState.next_moves_for_side(
             self.friends, 
             self.friend_waiting, 
             self.is_upper)
         
-        enemy_moves = GameState.__next_moves_for_side(
+        enemy_moves = GameState.next_moves_for_side(
             self.enemies,
             self.enemy_waiting,
             not self.is_upper
@@ -231,7 +229,7 @@ class GameState:
 
         return all_states
     
-    def __next_moves_for_side(pieces, num_tokens_waiting, is_upper):
+    def next_moves_for_side(pieces, num_tokens_waiting, is_upper):
 
         if num_tokens_waiting < GameState.MAX_TOKENS:
             moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
