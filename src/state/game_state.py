@@ -21,8 +21,7 @@ class GameState:
                      for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
 
 
-    __slots__ = ("is_upper", "friends", "enemies", "hash", "turn", "friend_waiting", 
-                "enemy_waiting")
+    __slots__ = ("is_upper", "friends", "enemies", "hash", "turn", "friend_throws", "enemy_throws")
 
 
     def __init__(self):
@@ -31,8 +30,8 @@ class GameState:
         self.enemies = []
         self.hash = self.__hash__()
         self.turn = 0
-        self.friend_waiting = 0
-        self.enemy_waiting = 0
+        self.friend_throws = 0
+        self.enemy_throws = 0
     
 
     def __copy_properties(self) -> "GameState":
@@ -43,7 +42,8 @@ class GameState:
         new_state = GameState()
         new_state.is_upper = self.is_upper
         new_state.turn = self.turn
-        new_state.friend_waiting = self.friend_waiting
+        new_state.friend_throws = self.friend_throws
+        new_state.enemy_throws = self.enemy_throws
         return new_state
 
 
@@ -55,8 +55,8 @@ class GameState:
         including any kills.
         """
 
-        updated_pieces = self.__updated_pieces(friend_move, enemy_move)
-        return self.__update_kills(updated_pieces)
+        updated_pieces, new_throws = self.__updated_pieces(friend_move, enemy_move)
+        return self.__update_kills(updated_pieces, new_throws)
     
 
     def __updated_pieces(self, friend_move, enemy_move):
@@ -65,15 +65,19 @@ class GameState:
         pieces after the move has been made but before battles have been resolved.
         """
         updated_pieces = {}
+        friend_num_throws = 0
+        enemy_num_throws = 0
         if friend_move[0] == "THROW":
             self.__update_throw(updated_pieces, friend_move, True)
+            friend_num_throws = 1
         else:
             self.__update_swing_slide(updated_pieces, friend_move, True)
         if enemy_move[0] == "THROW":
             self.__update_throw(updated_pieces, enemy_move, False)
+            enemy_num_throws = 1
         else:
             self.__update_swing_slide(updated_pieces, enemy_move, False)
-        return updated_pieces
+        return updated_pieces, (friend_num_throws, enemy_num_throws)
 
     
     def __update_swing_slide(self, updated_pieces, new_move, is_friend):
@@ -109,13 +113,15 @@ class GameState:
 
         `is_friend` flag used to determine if the friends or enemies are updated.
         """
+        throws = 0
         (_, new_t, new_loc) = new_move
         existing_pieces = self.friends if is_friend else self.enemies
         GameState.__append_loc_piece(updated_pieces, (new_t, new_loc), is_friend)
         for existing_piece in existing_pieces:
             GameState.__append_loc_piece(updated_pieces, existing_piece, is_friend)
-        if is_friend:
-            self.friend_waiting += 1
+        # if is_friend:
+            # self.friend_throws += 1
+        
 
     
     def __append_loc_piece(board_pieces, piece, is_friend):
@@ -136,7 +142,7 @@ class GameState:
             board_pieces[loc][int(not is_friend)].append(piece)
 
 
-    def __update_kills(self, updated_pieces):
+    def __update_kills(self, updated_pieces, new_throws):
         """
         Run through all locations in `updated_pieces` and remove any pieces that lose the battles 
         at those locations.
@@ -148,6 +154,8 @@ class GameState:
         """
 
         new_state = self.__copy_properties()
+        new_state.friend_throws += new_throws[0]
+        new_state.enemy_throws += new_throws[1]
         new_state.turn += 1
         for loc, (fr_pieces, en_pieces) in updated_pieces.items():
             if len(fr_pieces) + len(en_pieces) > 1:
@@ -168,20 +176,15 @@ class GameState:
         Return all possible moves that can be reached from the current `GameState`
 
         """
-        friend_moves = GameState.next_moves_for_side(
-            self.friends, 
-            self.friend_waiting, 
-            self.is_upper)
-        
-        enemy_moves = GameState.next_moves_for_side(
-            self.enemies,
-            self.enemy_waiting,
-            not self.is_upper
-        )
 
-        all_states = list(product(friend_moves, enemy_moves))
-
-        return all_states
+        all_moves = list(product(self.next_friend_moves(), self.next_enemy_moves()))
+        return all_moves
+    
+    def next_friend_moves(self):
+        return GameState.next_moves_for_side(self.friends, self.friend_throws, self.is_upper)
+    
+    def next_enemy_moves(self):
+        return GameState.next_moves_for_side(self.enemies, self.enemy_throws, not self.is_upper)
     
     def next_moves_for_side(pieces, num_tokens_waiting, is_upper):
 

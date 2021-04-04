@@ -7,7 +7,12 @@ Kevin Russell 1084088
 """
 
 from random import randrange
+from heapq import heappush, heappop
+
 from state.game_state import GameState
+from state.token import defeats
+from state.location import distance
+from strategy.greedy_util import opponent_distance_scores
 
 class Player:
 
@@ -21,8 +26,7 @@ class Player:
         as Lower).
         """
         self.game_state = GameState()        
-        if player == "lower":
-            self.game_state.is_upper = False
+        self.game_state.is_upper = player == "upper"
 
     
     def action(self):
@@ -30,12 +34,10 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        possible_moves = GameState.next_moves_for_side(
-            self.game_state.friends, self.game_state.friend_throws, self.game_state.is_upper
-        )
-        self.game_state.next_moves()
-        piece = possible_moves[randrange(len(possible_moves))]
-        return piece
+        queue = opponent_distance_scores(self.game_state)
+        (best_score, best_move) = heappop(queue)
+        return best_move
+        
     
 
     def update(self, opponent_action, player_action):
@@ -47,4 +49,9 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state = self.game_state.update(opponent_action, player_action)
+
+    
+
+
+
 
