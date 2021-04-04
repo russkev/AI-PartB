@@ -1,3 +1,4 @@
+from random import randrange
 from state.game_state import GameState
 
 class Player:
@@ -26,7 +27,12 @@ class Player:
 
         # return next_states[randrange(len(next_states))]
 
-        return self.game_state.generate_random_move()
+        possible_moves = GameState.next_moves_for_side(
+            self.game_state.friends, self.game_state.friend_waiting, self.game_state.is_upper
+        )
+        self.game_state.next_moves()
+        piece = possible_moves[randrange(len(possible_moves))]
+        return piece
     
     def update(self, opponent_action, player_action):
         """

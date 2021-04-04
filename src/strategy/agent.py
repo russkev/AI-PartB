@@ -1,3 +1,5 @@
+# most of this file is a greedy implementation that can be moved to the strategy folder.
+
 """
 COMP30024 Artificial Intelligence
 Semester 1, 2021
