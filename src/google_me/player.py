@@ -1,3 +1,4 @@
+from strategy import random
 from state.game_state import GameState
 
 class Player:
@@ -26,7 +27,10 @@ class Player:
 
         # return next_states[randrange(len(next_states))]
 
-        return self.game_state.generate_random_move()
+
+        return random.action(self.game_state)
+
+        # return self.game_state.generate_random_move()
     
     def update(self, opponent_action, player_action):
         """

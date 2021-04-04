@@ -78,7 +78,7 @@ class GameState:
         """
 
         # possible_moves = self.next_moves()
-        possible_moves = GameState.__next_moves_for_side(
+        possible_moves = GameState.next_moves_for_side(
             self.friends, 
             self.friend_waiting, 
             self.is_upper)
@@ -216,12 +216,12 @@ class GameState:
         Return all possible moves that can be reached from the current `GameState`
 
         """
-        friend_moves = GameState.__next_moves_for_side(
+        friend_moves = GameState.next_moves_for_side(
             self.friends, 
             self.friend_waiting, 
             self.is_upper)
         
-        enemy_moves = GameState.__next_moves_for_side(
+        enemy_moves = GameState.next_moves_for_side(
             self.enemies,
             self.enemy_waiting,
             not self.is_upper
@@ -231,7 +231,7 @@ class GameState:
 
         return all_states
     
-    def __next_moves_for_side(pieces, num_tokens_waiting, is_upper):
+    def next_moves_for_side(pieces, num_tokens_waiting, is_upper):
 
         if num_tokens_waiting < GameState.MAX_TOKENS:
             moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
