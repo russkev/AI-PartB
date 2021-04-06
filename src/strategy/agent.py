@@ -10,6 +10,7 @@ Kevin Russell 1084088
 
 from state.game_state import GameState
 from state.location import distance
+from state.token import defeats
 
 import time
 
@@ -31,11 +32,6 @@ class Agent:
         self.time_generating_new_states = 0
         self.time_updating_states = 0
 
-    def defeats(a_t, b_t):
-        return (a_t.upper() == "R" and b_t.upper() == "S") \
-            or (a_t.upper() == "P" and b_t.upper() == "R") \
-            or (a_t.upper() == "S" and b_t.upper() == "P") 
-
     def __calculate_h(state):
         """
         returns the heuristic value for the board state
@@ -44,7 +40,7 @@ class Agent:
         for(lower_t, lower_r, lower_q) in state.lower:
             min_s = 10000
             for (upper_t, upper_r, upper_q, *_) in state.upper:
-                if Agent.defeats(upper_t, lower_t):
+                if defeats(upper_t, lower_t):
                     curr_dist = distance(upper_r, upper_q, lower_r, lower_q)
                     if curr_dist < min_s:
                         min_s = curr_dist

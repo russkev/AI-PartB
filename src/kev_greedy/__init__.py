@@ -6,4 +6,4 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from rando.player import Player
+from kev_greedy.player import Player
