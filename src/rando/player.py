@@ -47,4 +47,12 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state = self.game_state.update(opponent_action, player_action)
+        terminal = self.game_state.is_goal_state()
+        if terminal == 1:
+            print("**************!!!!WIN!!!!**************")
+        elif terminal == 0:
+            print("**************----DRAW----**************")
+        elif terminal == -1:
+            print("**************____LOSE____**************")
+
 
