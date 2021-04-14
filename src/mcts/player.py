@@ -14,6 +14,13 @@ import numpy as np
 
 class Node(GameState):
     def __init__(self, other: GameState):
+        """
+        Initialise with a GameState.
+
+        Set is_friend parameter to false since our starting position (root) will always be the case 
+        where enemy has just moved and we're choosing where to move. This is making the (incorrect)
+        assumption that moves are sequential instead of simultaneous.
+        """
         super().__init__()
         self.is_upper = other.is_upper
         self.friends = other.friends
@@ -22,8 +29,9 @@ class Node(GameState):
         self.friend_throws = other.friend_throws
         self.enemy_throws = other.enemy_throws
         
-        self.action = None
-        self.parent = None
+
+        self.action = None # Action made to make this move
+        self.parent = None  
         self.children = set()
         self.is_friend = False
         self.is_visited = False
@@ -33,6 +41,9 @@ class Node(GameState):
         self.num_visits = 0
 
     def unvisited_children(self):
+        """
+        Return a list of children who have not been the root of a rollout yet.
+        """
         unvisited = []
         for child in self.children:
             if not child.is_visited:
@@ -64,7 +75,7 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        random_turns = 0
+        random_turns = 20
         if self.root.turn < random_turns:
             return biased_random_move(self.root, is_friend=True)
         else:
@@ -84,20 +95,41 @@ class Player:
 
 # Algorithm from:
 # https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
+
+exploration_constant = 0.1
+
 def monte_carlo_tree_search(root) -> Node:
+    """
+    Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
+    a maximum number of iterations must be used to provide a cutoff.
+    """
     # start_time = time()
     count = 0
-    while (count < 100):
+    while (count < 1000):
+        # A leaf node of the current frontier, does not include nodes visited in the rollout stage
         leaf = traverse(root)
+        # Make random moves to terminal and record the win, lose or draw score
         simulation_result = rollout(leaf)
+        # Update all nodes in the appropriate branch with the simulation result (again, branch does
+        # not include any nodes visited in rollout stage)
         back_propagate(leaf, simulation_result)
         count +=  1
 
+    # Out of all the children of the root node choose the best one (i.e. the most visited one)
     return best_child(root)
 
 
 def traverse(node: Node):
-    # fully_expand_node(node)
+    """
+    Starting at the main root, traverse the tree. Use the UCT value to decide which child to visit 
+    in each step. 
+    
+    Stop when a node is reached with children that have not been the root of a rollout.
+
+    Pick a chiled from which to apply a rollout from the unvisited children.
+    """
+
+    
     # Find a node that hasn't been fully expanded
     while node.is_fully_expanded:
         node = best_uct(node)
@@ -106,13 +138,18 @@ def traverse(node: Node):
         # Node is terminal
         return node
     else:
-        update_with_children(node)
+        add_children(node)
 
     
     return pick_unvisited_child(node)
 
 
 def rollout(node: "Node"):
+    """
+    Recursively choose moves for both sides until a terminal state is reached.
+    Once terminal state reached, return the score in relation to root.friend 
+    (+1 for win, 0 for draw, -1 for lose) 
+    """
     goal_reward = node.goal_reward()
     if goal_reward is not None:
         return goal_reward
@@ -125,15 +162,19 @@ def rollout(node: "Node"):
 
 
 def rollout_policy(game_state: "Node") -> GameState:
+    """
+    Make random pair of moves (or use a very fast heuristic) and return the new state
+    """
     friend_choice = biased_random_move(game_state, is_friend=True)
     enemy_choice = biased_random_move(game_state, is_friend=False)
-    # new_node = Node(curr_node.update(enemy_choice, friend_choice))
-    # new_node.parent = curr_node
-    # curr_node.children.add(new_node)
     return game_state.update(enemy_choice, friend_choice)
 
 
 def back_propagate(node: "Node", result):
+    """
+    For all nodes that formed part of the branch which just had a rollout, 
+    update the statistics for those nodes
+    """
     if node.parent is None:
         return
     node.num_visits += 1
@@ -142,6 +183,10 @@ def back_propagate(node: "Node", result):
 
 
 def best_child(node: Node):
+    """
+    Of all the children of node, choose the one with the best score. 
+    Traditionally this is the one with the most visits.
+    """
     winner = None
     max_visits = 0
     for child in node.children:
@@ -153,6 +198,10 @@ def best_child(node: Node):
 
 
 def pick_unvisited_child(node: "Node"):
+    """
+    From all the children of node, randomly choose one that has not been visited and return it.
+    Possible to use a heuristic here instead of randomness.
+    """
     unvisited = node.unvisited_children()
     num_unvisited = len(unvisited)
     if num_unvisited == 0:
@@ -166,19 +215,25 @@ def pick_unvisited_child(node: "Node"):
         return choice
 
 
-def fully_expand_node(node: "Node"):
-    transitions = node.next_enemy_transitions() if node.is_friend else node.next_friend_transitions()
-    for transition in transitions:
-        if node.is_friend:
-            node.update(transition, None)
-        else:
-            node.update(None, transition)
+# def fully_expand_node(node: "Node"):
+#     transitions = node.next_enemy_transitions() if node.is_friend else node.next_friend_transitions()
+#     for transition in transitions:
+#         if node.is_friend:
+#             node.update(transition, None)
+#         else:
+#             node.update(None, transition)
 
 
 def best_uct(node: "Node"):
+    """
+    Choose the node that gives the highest UCT (Upper Confidence Bound for 
+    Trees) value.
+
+    The exploration value is larger for nodes that have not yet been visited very many times. It 
+    can be adjusted with the hyper-peramater: exploration_constant
+    """
     best_child = None
     best_score = 0
-    exploration_constant = 0.5
     for child in node.children:
         exploitation = child.q_value / child.num_visits
         exploration = np.sqrt(np.log(node.num_visits) / child.num_visits)
@@ -188,7 +243,13 @@ def best_uct(node: "Node"):
             best_score = uct
     return best_child
 
-def update_with_children(node: "Node"):
+def add_children(node: "Node"):
+    """
+    Calculate all moves that can be reached from the node state. Add them to the node as children.
+
+    Moves are just calculated for one side, namely the opposite side to the side defined by the 
+    node.is_friend parameter
+    """
     if len(node.children) == 0:
         if node.is_friend:
             child_moves = node.next_enemy_transitions()
