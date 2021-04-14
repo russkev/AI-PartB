@@ -47,7 +47,7 @@ class GameState:
         new_state.enemy_throws = self.enemy_throws
         return new_state
 
-    def is_goal_state(self):
+    def goal_reward(self):
         """
         Return False if goal state has not been reached
         Return 1 if friend has won
@@ -112,12 +112,19 @@ class GameState:
 
 
     def __moves_are_available(self, is_friend):
+        """
+        Return true if there are any moves or throws available to the player
+        """
         if is_friend:
             return not (self.friend_throws == self.MAX_TOKENS and len(self.friends) == 0)
         else:
             return not (self.enemy_throws == self.MAX_TOKENS and len(self.enemies) == 0)
 
     def __player_is_invincible(self, is_friend):
+        """
+        Return true if player has at least one token that it is impossible for the other side
+        to kill
+        """
         if is_friend and self.enemy_throws < self.MAX_TOKENS:
             return False
         elif not is_friend and self.friend_throws < self.MAX_TOKENS:
@@ -140,6 +147,9 @@ class GameState:
         
 
     def __tokens_on_board(self, is_friend) -> set:
+        """
+        Return a set of all tokens currently on the board for a player
+        """
         pieces = self.friends if is_friend else self.enemies
         tokens = set()
         for (token, _) in pieces:
@@ -147,7 +157,7 @@ class GameState:
         return tokens
 
 
-    def update(self, enemy_move, friend_move):
+    def update(self, enemy_move=None, friend_move=None):
         """
         Main update function.
 
@@ -157,7 +167,7 @@ class GameState:
 
         updated_pieces, new_throws = self.__updated_pieces(friend_move, enemy_move)
         return self.__update_kills(updated_pieces, new_throws)
-    
+        
 
     def __updated_pieces(self, friend_move, enemy_move):
         """
@@ -167,16 +177,18 @@ class GameState:
         updated_pieces = {}
         friend_num_throws = 0
         enemy_num_throws = 0
-        if friend_move[0] == "THROW":
-            self.__update_throw(updated_pieces, friend_move, True)
-            friend_num_throws = 1
-        else:
-            self.__update_swing_slide(updated_pieces, friend_move, True)
-        if enemy_move[0] == "THROW":
-            self.__update_throw(updated_pieces, enemy_move, False)
-            enemy_num_throws = 1
-        else:
-            self.__update_swing_slide(updated_pieces, enemy_move, False)
+        if friend_move is not None:
+            if friend_move[0] == "THROW":
+                self.__update_throw(updated_pieces, friend_move, True)
+                friend_num_throws = 1
+            else:
+                self.__update_swing_slide(updated_pieces, friend_move, True)
+        if enemy_move is not None:
+            if enemy_move[0] == "THROW":
+                self.__update_throw(updated_pieces, enemy_move, False)
+                enemy_num_throws = 1
+            else:
+                self.__update_swing_slide(updated_pieces, enemy_move, False)
         return updated_pieces, (friend_num_throws, enemy_num_throws)
 
     
@@ -271,41 +283,76 @@ class GameState:
         return new_state
 
     
-    def next_moves(self):
+    def next_transitions(self):
         """
-        Return all possible moves that can be reached from the current `GameState`
+        Return all possible friend enemy move combinations from the current `GameState`
 
         """
 
-        all_moves = list(product(self.next_friend_moves(), self.next_enemy_moves()))
+        all_moves = list(product(self.next_friend_transitions(), self.next_enemy_transitions()))
         return all_moves
     
+    def next_friend_transitions(self):
+        # return GameState.next_all_moves_for_side(self.friends, self.friend_throws, self.is_upper)
+        return self.__next_moves_for_side(True) + self.__next_throws_for_side(True)
+
+    
+    def next_enemy_transitions(self):
+        # return GameState.next_all_moves_for_side(self.enemies, self.enemy_throws, not self.is_upper)
+        return self.__next_moves_for_side(False) + self.__next_throws_for_side(False)
+    
     def next_friend_moves(self):
-        return GameState.next_moves_for_side(self.friends, self.friend_throws, self.is_upper)
-    
+        return self.__next_moves_for_side(is_friend=True)
+
     def next_enemy_moves(self):
-        return GameState.next_moves_for_side(self.enemies, self.enemy_throws, not self.is_upper)
+        return self.__next_moves_for_side(is_friend=False)
+
+    def next_friend_throws(self):
+        return self.__next_throws_for_side(is_friend=True)
+
+    def next_enemy_throws(self):
+        return self.__next_throws_for_side(is_friend=False)
+
     
-    def next_moves_for_side(pieces, num_tokens_waiting, is_upper):
-
-        if num_tokens_waiting < GameState.MAX_TOKENS:
-            moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
-        else:
-            moves = []
-
+    def __next_moves_for_side(self, is_friend):
+        pieces = self.friends if is_friend else self.enemies
+        moves = []
         for (_, loc) in pieces:
-            slide_moves = GameState.__slide_moves(loc)
-            swing_moves = GameState.__swing_moves(pieces, loc, slide_moves)
+            slide_moves = GameState.__slide_transitions(loc)
+            swing_moves = GameState.__swing_transitions(pieces, loc, slide_moves)
             moves += slide_moves + swing_moves
         return moves
 
+    def __next_throws_for_side(self, is_friend):
+        # pieces = self.friends if is_friend else self.enemies
+        num_tokens_waiting = self.friend_throws if is_friend else self.enemy_throws
 
-    def __throw_moves(num_tokens_waiting, is_upper):
+        if num_tokens_waiting < GameState.MAX_TOKENS:
+            return self.__throw_transitions(num_tokens_waiting, is_friend)
+        else:
+            return []
+
+    # def next_all_moves_for_side(pieces, num_tokens_waiting, is_upper):
+
+    #     if num_tokens_waiting < GameState.MAX_TOKENS:
+    #         moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
+    #     else:
+    #         moves = []
+
+    #     for (_, loc) in pieces:
+    #         slide_moves = GameState.__slide_moves(loc)
+    #         swing_moves = GameState.__swing_moves(pieces, loc, slide_moves)
+    #         moves += slide_moves + swing_moves
+    #     return moves
+
+
+    def __throw_transitions(self, num_tokens_waiting, is_friend):
         """
         All possible throw moves
 
         Return tuple: ("THROW", token, location)
         """
+        is_upper = self.is_upper if is_friend else not self.is_upper
         if is_upper:
             farthest_r = max(4 - num_tokens_waiting, -4)
             moves = [("THROW", t, loc) for t in ["r", "p", "s"] 
@@ -320,7 +367,7 @@ class GameState:
         return moves
 
 
-    def __slide_moves(loc):
+    def __slide_transitions(loc):
         """
         All possible slide moves for a single location
 
@@ -336,7 +383,7 @@ class GameState:
         return result
 
 
-    def __swing_moves(pieces, curr_loc, slide_moves):
+    def __swing_transitions(pieces, curr_loc, slide_moves):
         """
         All possible swing moves for a single piece
 
@@ -350,7 +397,7 @@ class GameState:
             # a piece will not swing around itself because its current 
             # location is not in the pivots (of the swing)
             if other_loc in pivots:
-                for (_, _, swing_loc) in GameState.__slide_moves(other_loc):
+                for (_, _, swing_loc) in GameState.__slide_transitions(other_loc):
                     if GameState.board.is_legal_location(swing_loc) \
                         and swing_loc not in pivots \
                         and swing_loc != curr_loc:

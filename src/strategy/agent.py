@@ -287,7 +287,7 @@ class Agent:
             self.iter_count += 1
             self.max_storage = max(len(queue) + len(visited), self.max_storage)
 
-            if explore_state.is_goal_state():
+            if explore_state.goal_reward():
                 self.__trace_path(explore_state)
                 return
             

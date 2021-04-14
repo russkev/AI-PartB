@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 from state.game_state import GameState
-from strategy.rando_util import random_move
+from strategy.rando_util import biased_random_move
 
 class Player:
 
@@ -31,14 +31,14 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        # # possible_moves = GameState.next_all_moves_for_side(
-        # #     self.game_state.friends, self.game_state.friend_throws, self.game_state.is_upper
-        # # )
+        # possible_moves = GameState.next_all_moves_for_side(
+        #     self.game_state.friends, self.game_state.friend_throws, self.game_state.is_upper
+        # )
         # possible_moves = self.game_state.next_friend_transitions()
         # # self.game_state.next_moves()
         # piece = possible_moves[randrange(len(possible_moves))]
         # return piece
-        return random_move(self.game_state)
+        return biased_random_move(self.game_state, is_friend=True)
     
 
     def update(self, opponent_action, player_action):
