@@ -36,7 +36,7 @@ class Node(GameState):
         self.is_friend = False
         self.is_visited = False
         self.is_fully_expanded = False
-
+        
         self.q_value = 0
         self.num_visits = 0
 
@@ -75,6 +75,7 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
+        test()
         random_turns = 20
         if self.root.turn < random_turns:
             return biased_random_move(self.root, is_friend=True)
@@ -197,7 +198,7 @@ def best_child(node: Node):
 
 
 
-def pick_unvisited_child(node: "Node"):
+def pick_unvisited_child(node: "Node") -> Node:
     """
     From all the children of node, randomly choose one that has not been visited and return it.
     Possible to use a heuristic here instead of randomness.
@@ -265,3 +266,16 @@ def add_children(node: "Node"):
             child.is_friend = not node.is_friend
             child.action = child_move
             node.children.add(child)
+
+
+def test():
+    state = GameState()
+    node = Node(state)
+    node.friend_throws = 9
+    node.enemy_throws = 9
+    node.friends = [('r', (-3, 0))]
+    node.enemies = [('s', (-4, 0))]
+    result = monte_carlo_tree_search(node)
+    asad = 45
+    print(result.action)
+    # print("Hello, World!")
