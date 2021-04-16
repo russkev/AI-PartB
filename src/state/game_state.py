@@ -354,17 +354,26 @@ class GameState:
         """
         is_upper = self.is_upper if is_friend else not self.is_upper
         if is_upper:
-            farthest_r = max(4 - num_tokens_waiting, -4)
+            # farthest_r = max(4 - num_tokens_waiting, -4)
+            farthest_r = GameState.farthest_r(num_tokens_waiting, True)
             moves = [("THROW", t, loc) for t in ["r", "p", "s"] 
                         for loc in GameState.board.locations 
                         if not loc_lower_than(loc, farthest_r)]
         else:
-            farthest_r = min(-4 + num_tokens_waiting, 4)
+            # farthest_r = min(-4 + num_tokens_waiting, 4)
+            farthest_r = GameState.farthest_r(num_tokens_waiting, False)
             moves = [("THROW", t, loc) for t in ["r", "p", "s"]
                         for loc in GameState.board.locations 
                         if not loc_higher_than(loc, farthest_r)]
         
         return moves
+
+    @staticmethod
+    def farthest_r(num_tokens_waiting, is_upper):
+        if is_upper:
+            return max(4 - num_tokens_waiting, -4)
+        else:
+            return min(-4 + num_tokens_waiting, 4)
 
 
     def __slide_transitions(loc):
