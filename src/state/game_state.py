@@ -18,8 +18,7 @@ class GameState:
     MAX_TURNS = 360
     board = Board()
 
-    slide_options = [(r, q) for r in [-1, 0, 1]
-                     for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
+    slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
 
 
     __slots__ = ("is_upper", "friends", "enemies", "hash", "turn", "friend_throws", "enemy_throws")
@@ -46,6 +45,33 @@ class GameState:
         new_state.friend_throws = self.friend_throws
         new_state.enemy_throws = self.enemy_throws
         return new_state
+
+    def update_state_with_moves(self, friend_move, enemy_move):
+        self.turn += 1
+        self.__friendly_move(friend_move)
+        self.__enemy_move(enemy_move)
+
+    def __friendly_move(self, move):
+        if move[0] == 'THROW':
+            self.friend_throws += 1
+            self.friends.append((move[1], move[2]))
+            return 
+        
+        for i, (t, current_location) in enumerate(self.friends):
+            if current_location == move[1]:
+                self.friends[i] = (t, move[2])
+            return 
+
+    def __enemy_move(self, move):
+        if move[0] == 'THROW':
+            self.enemy_throws += 1
+            self.enemies.append((move[1], move[2]))
+            return 
+        
+        for i, (t, current_location) in enumerate(self.enemies):
+            if current_location == move[1]:
+                self.enemies[i] = (t, move[2])
+            return 
 
     def goal_reward(self):
         """
@@ -296,7 +322,6 @@ class GameState:
         # return GameState.next_all_moves_for_side(self.friends, self.friend_throws, self.is_upper)
         return self.__next_moves_for_side(True) + self.__next_throws_for_side(True)
 
-    
     def next_enemy_transitions(self):
         # return GameState.next_all_moves_for_side(self.enemies, self.enemy_throws, not self.is_upper)
         return self.__next_moves_for_side(False) + self.__next_throws_for_side(False)
