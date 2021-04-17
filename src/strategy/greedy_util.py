@@ -21,8 +21,8 @@ def opponent_distance_scores(game_state: GameState):
     state with the highest distance score.
     """
     queue = []
-    for friend_move in game_state.next_friend_moves():
-        score = opponent_distance_score(game_state, friend_move, game_state.next_enemy_moves())
+    for friend_move in game_state.next_friend_transitions():
+        score = opponent_distance_score(game_state, friend_move, game_state.next_enemy_transitions())
         heappush(queue, (-score, friend_move))
 
     return queue
