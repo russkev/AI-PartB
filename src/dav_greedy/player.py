@@ -7,7 +7,7 @@ Kevin Russell 1084088
 """
 
 from state.game_state import GameState
-from strategy.minimax import minimax
+from strategy.minimax import minimax_paranoid_reduction
 
 class Player:
 
@@ -31,6 +31,11 @@ class Player:
         print("a")
 
         print("a")
+
+        a = minimax_paranoid_reduction(self.game_state)
+
+        action_state = self.game_state.copy_state()
+
 
         # do i build the tree here then pass it to minimax?
 

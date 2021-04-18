@@ -46,10 +46,32 @@ class GameState:
         new_state.enemy_throws = self.enemy_throws
         return new_state
 
+    def copy_state(self) -> "GameState":
+        """
+        Copy current game state with complete properties set.
+        """
+        new_state = GameState()
+        new_state.is_upper = self.is_upper
+        new_state.friends = self.friends
+        new_state.enemies = self.enemies
+        new_state.turn = self.turn
+        new_state.friend_throws = self.friend_throws
+        new_state.enemy_throws = self.enemy_throws
+        return new_state
+
+    def simulate_moves(self, friend_move, enemy_move):
+        # new_state = self.copy_state()
+        
+        self.turn += 1
+        self.__friendly_move(friend_move)
+        self.__enemy_move(enemy_move)
+        return self
+
     def update_state_with_moves(self, friend_move, enemy_move):
         self.turn += 1
         self.__friendly_move(friend_move)
         self.__enemy_move(enemy_move)
+
 
     def __friendly_move(self, move):
         if move[0] == 'THROW':
