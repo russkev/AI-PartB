@@ -7,6 +7,7 @@ Kevin Russell 1084088
 """
 
 from random import randrange
+import copy
 from state.game_state import GameState
 from strategy.rando_util import random_move
 

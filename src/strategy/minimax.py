@@ -66,12 +66,30 @@ def eval_function(game_state):
 #         return value
 
 if __name__ == '__main__':
-    g = [
-        ("move f 1", [("Move e 1", 2), ("Move e 2", 4)]),
-        ("move f 2", [("Move e 1", -4), ("Move e 2", 6)]),
-        ("move f 3", [("Move e 1", 3), ("Move e 2", 16)]),
-        ("move f 4", [("Move e 1", 5), ("Move e 2", 5)]),
-        ("move f 5", [("Move e 1", -10), ("Move e 2", -2)]),
-    ]
+    # g = [
+    #     ("move f 1", [("Move e 1", 2), ("Move e 2", 4)]),
+    #     ("move f 2", [("Move e 1", -4), ("Move e 2", 6)]),
+    #     ("move f 3", [("Move e 1", 3), ("Move e 2", 16)]),
+    #     ("move f 4", [("Move e 1", 5), ("Move e 2", 5)]),
+    #     ("move f 5", [("Move e 1", -10), ("Move e 2", -2)]),
+    # ]
     
+    turn = 0
+    up_throws = 0
+    low_throws = 0
+    pos = {(0,0): [("up", "r"), ("up", "r")], (1,1): [("low", "r")], (1,2): [("low", "p")]}
+    ups = {(0,0): [("up", "r"), ("up", "r")]}
+    lows = {(1,1): [("low", "r")], (1,2): [("low", "p")]}
 
+    game_state = (turn, up_throws, low_throws, pos, ups, lows)
+
+    import time
+    t_start = time.time()
+    for i in range(10000):
+        ups.copy()
+    print('copy', time.time() - t_start)
+    
+    t_start = time.time()
+    for i in range(10000):
+        copy.deepcopy(ups)
+    print('deep copy', time.time() - t_start)

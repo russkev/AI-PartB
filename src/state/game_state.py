@@ -60,18 +60,16 @@ class GameState:
         return new_state
 
     def simulate_moves(self, friend_move, enemy_move):
-        # new_state = self.copy_state()
-        
         self.turn += 1
         self.__friendly_move(friend_move)
         self.__enemy_move(enemy_move)
-        return self
+
+        # self.update(friend_move, enemy_move)
 
     def update_state_with_moves(self, friend_move, enemy_move):
         self.turn += 1
         self.__friendly_move(friend_move)
         self.__enemy_move(enemy_move)
-
 
     def __friendly_move(self, move):
         if move[0] == 'THROW':

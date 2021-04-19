@@ -28,28 +28,8 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        print("a")
 
-        print("a")
-
-        a = minimax_paranoid_reduction(self.game_state)
-
-        action_state = self.game_state.copy_state()
-
-
-        # do i build the tree here then pass it to minimax?
-
-        self.game_state.next_transitions()[0:2]  # list that is [friend, enemy]
-
-        return ('THROW', 'r', (4, 0))
-
-        # return GameState.next_moves_for_side(
-        #     self.game_state.friends, self.game_state.friend_throws, self.game_state.is_upper
-        # )[0]
-        
-        # queue = opponent_distance_scores(self.game_state)
-        # (best_score, best_move) = heappp(queue)
-        # return best_move
+        return minimax_paranoid_reduction(self.game_state)
         
     def update(self, opponent_action, player_action):
         """
