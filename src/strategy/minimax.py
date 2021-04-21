@@ -1,7 +1,8 @@
 import math
 import copy
 import random
-
+from state.game_state import GameState
+from strategy.evaluation import eval_function
 
 def minimax_paranoid_reduction(game_state):
     state_tree = build_state_tree(game_state)
@@ -24,7 +25,7 @@ def max_layer(moves):
             max_index = i + 1
     return max_index
 
-def build_state_tree(game_state):
+def build_state_tree(game_state: GameState):
     f_moves = game_state.next_friend_transitions()
     e_moves = game_state.next_enemy_transitions()
     minimax_tree = []
@@ -35,17 +36,12 @@ def build_state_tree(game_state):
     for i, f_move in enumerate(f_moves):
         minimax_tree.append((f_moves[i], []))
         for j, e_move in enumerate(e_moves):
-            minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).simulate_moves(f_moves[i], e_moves[j]))))
+            # minimax_tree[i][1].append((e_moves[j],  eval_function(
+            #     copy.deepcopy(game_state).simulate_moves(f_moves[i], e_moves[j]))))
+            minimax_tree[i][1].append((e_moves[j],  eval_function(
+                game_state.update(e_move, f_move))))
 
     return minimax_tree
-
-def eval_function(game_state):
-    """
-    takes a game state and estimates the future utility.
-    """
-
-    return 1.0
-
 
 
 # def minimax(node, depth, maximising_player):

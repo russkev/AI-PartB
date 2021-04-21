@@ -253,9 +253,9 @@ def add_children(node: "Node"):
 
         for child_move in child_moves:
             if node.is_friend:
-                child = Node(node.update(enemy_move=child_move))
+                child = Node(node.update(enemy_transition=child_move))
             else:
-                child = Node(node.update(friend_move=child_move))
+                child = Node(node.update(friend_transition=child_move))
             child.parent = node
             child.is_friend = not node.is_friend
             child.action = child_move

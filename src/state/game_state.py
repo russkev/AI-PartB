@@ -93,6 +93,12 @@ class GameState:
                 self.enemies[i] = (t, move[2])
             return 
 
+    def num_kills(self):
+        return self.enemy_throws - len(self.enemies)
+
+    def num_deaths(self):
+        return self.friend_throws - len(self.friends)
+
     def goal_reward(self):
         """
         Return False if goal state has not been reached
@@ -203,7 +209,7 @@ class GameState:
         return tokens
 
 
-    def update(self, enemy_move=None, friend_move=None):
+    def update(self, enemy_transition=None, friend_transition=None):
         """
         Main update function.
 
@@ -211,7 +217,7 @@ class GameState:
         including any kills.
         """
 
-        updated_pieces, new_throws = self.__updated_pieces(friend_move, enemy_move)
+        updated_pieces, new_throws = self.__updated_pieces(friend_transition, enemy_transition)
         return self.__update_kills(updated_pieces, new_throws)
         
 
@@ -229,12 +235,16 @@ class GameState:
                 friend_num_throws = 1
             else:
                 self.__update_swing_slide(updated_pieces, friend_move, True)
+        else:
+            self.__update_no_transition(updated_pieces, True)
         if enemy_move is not None:
             if enemy_move[0] == "THROW":
                 self.__update_throw(updated_pieces, enemy_move, False)
                 enemy_num_throws = 1
             else:
                 self.__update_swing_slide(updated_pieces, enemy_move, False)
+        else:
+            self.__update_no_transition(updated_pieces, False)
         return updated_pieces, (friend_num_throws, enemy_num_throws)
 
     
@@ -259,6 +269,15 @@ class GameState:
             else:
                 GameState.__append_loc_piece(
                     updated_pieces, (t, existing_loc), is_friend)
+
+    def __update_no_transition(self, updated_pieces, is_friend):
+        """
+        Update the `updated_pieces` dictionary if there are no transitions.
+        """
+        existing_pieces = self.friends if is_friend else self.enemies
+        for piece in existing_pieces:
+            GameState.__append_loc_piece(updated_pieces, piece, is_friend)
+
 
     
     def __update_throw(self, updated_pieces, new_move, is_friend):
@@ -340,17 +359,17 @@ class GameState:
     
     def next_friend_transitions(self):
         # return GameState.next_all_moves_for_side(self.friends, self.friend_throws, self.is_upper)
-        return self.__next_moves_for_side(True) + self.__next_throws_for_side(True)
+        return self.__next_transitions_for_side(True) + self.__next_throws_for_side(True)
 
     def next_enemy_transitions(self):
         # return GameState.next_all_moves_for_side(self.enemies, self.enemy_throws, not self.is_upper)
-        return self.__next_moves_for_side(False) + self.__next_throws_for_side(False)
+        return self.__next_transitions_for_side(False) + self.__next_throws_for_side(False)
     
     def next_friend_moves(self):
-        return self.__next_moves_for_side(is_friend=True)
+        return self.__next_transitions_for_side(is_friend=True)
 
     def next_enemy_moves(self):
-        return self.__next_moves_for_side(is_friend=False)
+        return self.__next_transitions_for_side(is_friend=False)
 
     def next_friend_throws(self):
         return self.__next_throws_for_side(is_friend=True)
@@ -359,13 +378,16 @@ class GameState:
         return self.__next_throws_for_side(is_friend=False)
 
     
-    def __next_moves_for_side(self, is_friend):
+    def __next_transitions_for_side(self, is_friend):
         pieces = self.friends if is_friend else self.enemies
         moves = []
+        visited = set()
         for (_, loc) in pieces:
-            slide_moves = GameState.__slide_transitions(loc)
-            swing_moves = GameState.__swing_transitions(pieces, loc, slide_moves)
-            moves += slide_moves + swing_moves
+            if loc not in visited:
+                slide_moves = GameState.__slide_transitions(loc)
+                swing_moves = GameState.__swing_transitions(pieces, loc, slide_moves)
+                moves += slide_moves + swing_moves
+                visited.add(loc)
         return moves
 
     def __next_throws_for_side(self, is_friend):
