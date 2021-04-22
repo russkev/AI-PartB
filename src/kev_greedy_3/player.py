@@ -49,14 +49,9 @@ class Player:
             eval_score, scores = evaluation_score(new_state, enemy_transitions)
             heappush(queue, (-1 * eval_score, tuple(scores), friend_transition))
 
-        # # queue = opponent_distance_scores(self.game_state)
-        # (best_score, best_scores, best_move) = heappop(queue)
-        # return best_move
-
-        
+        # queue = opponent_distance_scores(self.game_state)
         (best_score, best_scores, best_move) = heappop(queue)
         possible_moves = [(best_score, best_scores, best_move)]
-
 
         # Add all moves with the same best score to a list
         for (curr_score, *rest) in queue:
@@ -64,6 +59,7 @@ class Player:
                 break
             else:
                 possible_moves.append((curr_score, *rest))
+
 
         # Randomly pick from that list
         return possible_moves[np.random.choice(len(possible_moves), 1)[0]][2]
@@ -79,20 +75,26 @@ class Player:
         self.game_state = self.game_state.update(
             opponent_action, player_action)
 
-
-
 def evaluation_score(game_state, enemy_transitions):
-    distance_to_killable_score = eval.distance_to_killable_score(game_state, is_friend=True)
+    dist_to_killable_score_friend = eval.distance_to_killable_score(game_state, is_friend=True)
+    dist_to_killable_score_enemy = eval.distance_to_killable_score(game_state, is_friend=False)
+    dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
+
+    num_friend_useless, num_enemy_useless = eval.num_useless(game_state)
+
+
     num_killed_difference = eval.num_opponents_killed_difference(game_state)
 
     scores = [
-        distance_to_killable_score,
-        num_killed_difference
+        dist_to_killable_score_diff,
+        num_killed_difference,
+        num_friend_useless,
     ]
 
     weights = [
         1,
-        100,
+        50,
+        -10,
     ]
 
     final_scores = np.multiply(scores, weights)

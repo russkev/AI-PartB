@@ -135,7 +135,7 @@ def num_useless(game_state: GameState):
     return friend_useless, enemy_useless
 
 
-def distance_to_killable_score(game_state: GameState):
+def distance_to_killable_score(game_state: GameState, is_friend):
     """
     Return a score based on the distance friend tokens are from the tokens they can kill.
 
@@ -146,12 +146,19 @@ def distance_to_killable_score(game_state: GameState):
     rock that is much further away, a single score will be awarded for the closest pair only.
     """
 
+    if is_friend:
+        this_side_pieces = game_state.friends
+        opponent_side_pieces = game_state.enemies
+    else:
+        this_side_pieces = game_state.enemies
+        opponent_side_pieces = game_state.friends
+
     min_distances = []
 
-    for (en_token, en_loc) in game_state.enemies:
+    for (en_token, en_loc) in opponent_side_pieces:
         min_distance = 8
         min_fr_loc = None
-        for (fr_token, fr_loc) in game_state.friends:
+        for (fr_token, fr_loc) in this_side_pieces:
             if en_token == defeat_token(fr_token):
                 token_distance = distance(fr_loc, en_loc)
                 if token_distance < min_distance:
