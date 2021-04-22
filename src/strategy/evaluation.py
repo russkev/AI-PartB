@@ -2,6 +2,8 @@ from state.game_state import GameState
 from state.token import defeat_token
 from state.location import distance
 import numpy as np
+from heapq import heappush, heappop
+
 
 def eval_function(game_state, enemy_transitions):
     """
@@ -26,24 +28,31 @@ def eval_function(game_state, enemy_transitions):
     # ]
 
     num_poss_move_killed, num_poss_throw_killed = num_can_be_killed(game_state, enemy_transitions) 
+    num_kills = num_opponents_killed(game_state, is_friend=True)
+    num_deaths = num_opponents_killed(game_state, is_friend=False)
+    num_friend_useless, num_enemy_useless = num_useless(game_state)
 
     scores = [
-        distance_to_killable(game_state),
+        distance_to_killable_score(game_state),
+        num_friend_useless,
         num_poss_move_killed,
         num_poss_throw_killed,
-        num_opponents_killed(game_state, is_friend=True)
+        num_kills,
+        num_deaths,
     ]
 
     weights = [
-        -1,
-        -0.5,
-        -0.2,
-        1
+        1,
+        0,      #-7,
+        0,      #-0.5,
+        0,      #-0.2,
+        100,    # 1
+        -100    #-1
     ]
 
     final_scores = np.multiply(scores, weights)
 
-    return np.dot(scores, weights)
+    return np.dot(scores, weights), final_scores
 
 
 def num_moves_difference(game_state: GameState):
@@ -102,7 +111,7 @@ def num_opponents_killed(game_state: GameState, is_friend):
     return throws - len(pieces)
 
 
-def num_useless_difference(game_state: GameState):
+def num_useless(game_state: GameState):
     f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
 
     for (token, _) in game_state.friends:
@@ -120,23 +129,67 @@ def num_useless_difference(game_state: GameState):
         else:
             e_scissors += 1
 
-    friend_useless = f_rocks - e_scissors + f_papers - e_rocks + f_scissors - e_papers
+    friend_useless = max(f_rocks - e_scissors, 0) + max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
     enemy_useless = e_rocks - f_scissors + e_papers - f_rocks + e_scissors - f_papers
 
-    return friend_useless - enemy_useless
+    return friend_useless, enemy_useless
 
 
-def distance_to_killable(game_state: GameState):
-    friend_distance = 0
-    friend_defeat_found = enemy_defeat_found = False
-    for (f_token, f_loc) in game_state.friends:
-        for (e_token, e_loc) in game_state.enemies:
-            if e_token == defeat_token(f_token):
-                friend_distance += distance(f_loc, e_loc)
-                friend_defeat_found = True
+def distance_to_killable_score(game_state: GameState):
+    """
+    Return a score based on the distance friend tokens are from the tokens they can kill.
 
-    friend_distance = friend_distance if friend_defeat_found else 20
-    return friend_distance
+    The score is higher when more pieces are closer to their targets
+
+    Points are added for the closest killable token to an attacking friendly token only.
+    If, for example a friendly rock is very near 2 enemy scissors and there is another friendly 
+    rock that is much further away, a single score will be awarded for the closest pair only.
+    """
+
+    min_distances = []
+
+    for (en_token, en_loc) in game_state.enemies:
+        min_distance = 8
+        min_fr_loc = None
+        for (fr_token, fr_loc) in game_state.friends:
+            if en_token == defeat_token(fr_token):
+                token_distance = distance(fr_loc, en_loc)
+                if token_distance < min_distance:
+                    min_distance = token_distance
+                    min_fr_loc = fr_loc
+        heappush(min_distances, (min_distance, min_fr_loc))
+
+    used_fr_locs = set()
+    return_distances = 0
+
+    while len(min_distances) > 0:
+        (min_distance, fr_loc) = heappop(min_distances)
+        if fr_loc not in used_fr_locs:
+            return_distances += 8 - min_distance
+            used_fr_locs.add(fr_loc)
+
+    return return_distances
+
+
+
+
+
+    # for (f_token, f_loc) in game_state.friends:
+    #     # min_distance = 8
+    #     # min_loc = None
+    #     for (e_token, e_loc) in game_state.enemies:
+    #         if e_token == defeat_token(f_token):
+    #             t_distance = distance(f_loc, e_loc)
+    #             if t_distance < min_distance:
+    #                 min_distance = t_distance
+    #                 min_loc = e_loc
+    #     if min_loc is not None:
+    #         visited_enemies.add()
+    #     friend_distance += 8 - min_distance
+    #             # friend_defeat_found = True
+
+    # # friend_distance = friend_distance if friend_defeat_found else 20
+    # return friend_distance
 
 def num_can_be_killed(game_state: GameState, enemy_transitions):
     move_killed_count = throw_killed_count = 0

@@ -43,11 +43,11 @@ class Player:
         for friend_transition in friend_transitions:
             # enemy_transition = enemy_transitions[randrange(num_enemy_transitions)]
             new_state = self.game_state.update(friend_transition=friend_transition)
-            eval_score = eval_function(new_state, enemy_transitions)
-            heappush(queue, (-1 * eval_score, friend_transition))
+            eval_score, scores = eval_function(new_state, enemy_transitions)
+            heappush(queue, (-1 * eval_score, tuple(scores), friend_transition))
 
         # queue = opponent_distance_scores(self.game_state)
-        (score, best_move) = heappop(queue)
+        (best_score, best_scores, best_move) = heappop(queue)
         return best_move
 
     def update(self, opponent_action, player_action):

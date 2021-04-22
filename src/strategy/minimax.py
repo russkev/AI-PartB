@@ -36,10 +36,8 @@ def build_state_tree(game_state: GameState):
     for i, f_move in enumerate(f_moves):
         minimax_tree.append((f_moves[i], []))
         for j, e_move in enumerate(e_moves):
-            # minimax_tree[i][1].append((e_moves[j],  eval_function(
-            #     copy.deepcopy(game_state).simulate_moves(f_moves[i], e_moves[j]))))
-            minimax_tree[i][1].append((e_moves[j],  eval_function(
-                game_state.update(e_move, f_move))))
+            eval_score, _ = eval_function(game_state.update(e_move, f_move), e_moves)
+            minimax_tree[i][1].append((e_moves[j],  eval_score))
 
     return minimax_tree
 
