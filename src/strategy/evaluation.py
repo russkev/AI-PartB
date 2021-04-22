@@ -27,7 +27,7 @@ def eval_function(game_state, enemy_transitions):
     #     -1,
     # ]
 
-    num_poss_move_killed, num_poss_throw_killed = num_can_be_killed(game_state, enemy_transitions) 
+    num_poss_move_killed, num_poss_throw_killed = num_can_be_move_killed(game_state, enemy_transitions) 
     num_kills = num_opponents_killed(game_state, is_friend=True)
     num_deaths = num_opponents_killed(game_state, is_friend=False)
     num_friend_useless, num_enemy_useless = num_useless(game_state)
@@ -198,14 +198,39 @@ def distance_to_killable_score(game_state: GameState, is_friend):
     # # friend_distance = friend_distance if friend_defeat_found else 20
     # return friend_distance
 
-def num_can_be_killed(game_state: GameState, enemy_transitions):
-    move_killed_count = throw_killed_count = 0
-    enemy_move_transitions = game_state.next_enemy_moves()
-    for (_, fr_loc) in game_state.friends:
-        for (transition_type, _, en_loc) in enemy_move_transitions:
-            if fr_loc == en_loc:
-                if transition_type == "THROW":
-                    throw_killed_count += 1
-                else:
-                    move_killed_count += 1
-    return move_killed_count, throw_killed_count
+def num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces):
+    return (num_can_be_move_killed(game_state, enemy_move_to_pieces, is_friend=True) 
+            -num_can_be_move_killed(game_state, friend_move_to_pieces, is_friend=False)) 
+
+def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
+
+    pieces = game_state.friends if is_friend else game_state.enemies
+    count = 0
+
+    for (curr_token, curr_loc) in pieces:
+        for (opponent_token, opponent_loc) in move_to_pieces:
+            if curr_loc == opponent_loc and curr_token == defeat_token(opponent_token):
+                count += 1
+    return count
+
+
+    # this_side_pieces = game_state.friends if is_friend else game_state.enemies
+    # opponent_side_pieces = game_state.enemies if is_friend else game_state.friends
+    # move_killed_count = throw_killed_count = 0
+    # # enemy_move_transitions = game_state.next_enemy_moves()
+    # for (fr_token, fr_loc) in this_side_pieces:
+    #     for (transition_type, en_from_loc, en_to_loc) in opponent_transitions:
+    #         if transition_type != "THROW":
+    #             for (en_token, en_loc) in opponent_side_pieces:
+    #                 if en_loc == en_to_loc:
+    #                     break
+    #             if 
+
+
+    #         if fr_loc == en_loc:
+    #             if transition_type != "THROW":
+    #                 if fr_
+    #                 move_killed_count += 1
+                
+    # return move_killed_count, throw_killed_count
+
