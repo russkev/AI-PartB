@@ -5,49 +5,43 @@ import numpy as np
 from heapq import heappush, heappop
 
 
-def eval_function(game_state, enemy_transitions):
+def eval_function(game_state: GameState):
     """
     takes a game state and estimates the future utility.
     """
-    # scores = [
-    #     num_moves_difference(game_state),
-    #     num_throws_difference(game_state),
-    #     pieces_in_throw_range_difference(game_state),
-    #     num_opponents_killed_difference(game_state),
-    #     num_useless_difference(game_state),
-    #     distance_to_killable(game_state),
-    # ]
+    dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
+    dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
+    dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
 
-    # weights = [
-    #     0,
-    #     0,
-    #     0,
-    #     0,
-    #     0,
-    #     -1,
-    # ]
-
-    num_poss_move_killed, num_poss_throw_killed = num_can_be_move_killed(game_state, enemy_transitions) 
-    num_kills = num_opponents_killed(game_state, is_friend=True)
-    num_deaths = num_opponents_killed(game_state, is_friend=False)
     num_friend_useless, num_enemy_useless = num_useless(game_state)
+    num_useless_diff = num_friend_useless - num_enemy_useless
+
+    num_killed_diff = num_opponents_killed_difference(game_state)
+    pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
+
+    friend_move_to_pieces = game_state.moves_to_pieces(game_state.next_friend_moves(), is_friend=True)
+    enemy_move_to_pieces = game_state.moves_to_pieces(game_state.next_enemy_moves(), is_friend=False)
+
+    pieces_in_move_range_diff = num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
+
+    distance_from_safeline_diff = distance_from_safeline_difference(game_state)
 
     scores = [
-        distance_to_killable_score(game_state),
-        num_friend_useless,
-        num_poss_move_killed,
-        num_poss_throw_killed,
-        num_kills,
-        num_deaths,
+        dist_to_killable_score_diff,
+        num_killed_diff,
+        num_useless_diff,
+        pieces_in_throw_range_diff,
+        pieces_in_move_range_diff,
+        distance_from_safeline_diff
     ]
 
     weights = [
         1,
-        0,      #-7,
-        0,      #-0.5,
-        0,      #-0.2,
-        100,    # 1
-        -100    #-1
+        50,
+        -10,
+        -5,
+        -1,
+        -1
     ]
 
     final_scores = np.multiply(scores, weights)
@@ -73,13 +67,11 @@ def pieces_in_throw_range_difference(game_state: GameState):
 
 def pieces_in_throw_range(game_state: GameState, is_friend):
     if is_friend:
-        opponent_row = GameState.farthest_r(
-            game_state.enemy_throws, not game_state.is_upper)
+        opponent_row = GameState.farthest_r(game_state.enemy_throws, not game_state.is_upper)
         pieces = game_state.friends
         is_upper = game_state.is_upper
     else:
-        opponent_row = GameState.farthest_r(
-            game_state.friend_throws, game_state.is_upper)
+        opponent_row = GameState.farthest_r(game_state.friend_throws, game_state.is_upper)
         pieces = game_state.enemies
         is_upper = not game_state.is_upper
     count = 0
@@ -96,6 +88,34 @@ def pieces_in_throw_range(game_state: GameState, is_friend):
 
     return count
 
+
+def distance_from_safeline_difference(game_state):
+    return (distance_from_safeline(game_state, is_friend=True) -
+            distance_from_safeline(game_state, is_friend=False))
+
+
+def distance_from_safeline(game_state: GameState, is_friend):
+    if is_friend:
+        safe_row = GameState.farthest_r(
+            game_state.friend_throws, game_state.is_upper)
+        pieces = game_state.friends
+        is_upper = GameState.is_upper
+    else:
+        safe_row = GameState.farthest_r(
+            game_state.enemy_throws, not game_state.is_upper)
+        pieces = game_state.enemies
+        is_upper = not GameState.is_upper
+
+    total_distance = 0
+
+    if is_upper:
+        for (_, (r, _)) in pieces:
+            total_distance += max(0, safe_row - r)
+    else:
+        for (_, (r, _)) in pieces:
+            total_distance += max(0, r - safe_row)
+    
+    return total_distance
 
 def num_opponents_killed_difference(game_state: GameState):
     return game_state.num_kills() - game_state.num_deaths()
@@ -130,7 +150,7 @@ def num_useless(game_state: GameState):
             e_scissors += 1
 
     friend_useless = max(f_rocks - e_scissors, 0) + max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
-    enemy_useless = e_rocks - f_scissors + e_papers - f_rocks + e_scissors - f_papers
+    enemy_useless = max(e_rocks - f_scissors, 0) + max(e_papers - f_rocks, 0) + max(e_scissors - f_papers, 0)
 
     return friend_useless, enemy_useless
 

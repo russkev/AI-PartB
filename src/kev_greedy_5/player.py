@@ -39,17 +39,19 @@ class Player:
         of the game, select an action to play this turn.
         """
         friend_transitions = self.game_state.next_friend_transitions()
-        enemy_transitions = self.game_state.next_enemy_transitions()
-        num_enemy_transitions = len(enemy_transitions)
 
         queue = []
         for friend_transition in friend_transitions:
-            # enemy_transition = enemy_transitions[randrange(num_enemy_transitions)]
+            # New game state based on possible friend transition (enemy pieces stay the same)
             new_state = self.game_state.update(friend_transition=friend_transition)
-            eval_score, scores = evaluation_score(new_state, enemy_transitions)
+            
+            # Find the evaluation score
+            eval_score, scores = evaluation_score(new_state)
+
+            # Add to queue. Use negative of score as first element of tuple since it is a min heap
+            # A tuple of the individual scores are also included here for debugging purposes only
             heappush(queue, (-1 * eval_score, tuple(scores), friend_transition))
 
-        # queue = opponent_distance_scores(self.game_state)
         (best_score, best_scores, best_move) = heappop(queue)
         possible_moves = [(best_score, best_scores, best_move)]
 
@@ -75,7 +77,11 @@ class Player:
         self.game_state = self.game_state.update(
             opponent_action, player_action)
 
-def evaluation_score(game_state: GameState, enemy_transitions):
+def evaluation_score(game_state: GameState):
+    """
+    Custom evaluation function for this version of kev greedy
+
+    """
 
 
     dist_to_killable_score_friend = eval.distance_to_killable_score(game_state, is_friend=True)
@@ -93,12 +99,15 @@ def evaluation_score(game_state: GameState, enemy_transitions):
 
     pieces_in_move_range_diff = eval.num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
+    distance_from_safeline_diff = eval.distance_from_safeline_difference(game_state)
+
     scores = [
         dist_to_killable_score_diff,
         num_killed_diff,
         num_useless_diff,
         pieces_in_throw_range_diff,
-        pieces_in_move_range_diff
+        pieces_in_move_range_diff,
+        distance_from_safeline_diff
     ]
 
     weights = [
@@ -106,6 +115,7 @@ def evaluation_score(game_state: GameState, enemy_transitions):
         50,
         -10,
         -5,
+        -1,
         -1
     ]
 

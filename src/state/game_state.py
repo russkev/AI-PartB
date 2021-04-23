@@ -23,7 +23,7 @@ class GameState:
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
 
 
-    __slots__ = ("is_upper", "friends", "enemies", "hash", "turn", "friend_throws", "enemy_throws")
+    __slots__ = ("is_upper", "friends", "enemies", "hash", "visited", "turn", "friend_throws", "enemy_throws")
 
 
     def __init__(self):
@@ -31,6 +31,7 @@ class GameState:
         self.friends = []
         self.enemies = []
         self.hash = self.__hash__()
+        self.visited = {}
         self.turn = 0
         self.friend_throws = 0
         self.enemy_throws = 0
@@ -46,6 +47,7 @@ class GameState:
         new_state.turn = self.turn
         new_state.friend_throws = self.friend_throws
         new_state.enemy_throws = self.enemy_throws
+        new_state.visited = self.visited.copy()
         return new_state
 
     def copy_state(self) -> "GameState":
@@ -154,12 +156,14 @@ class GameState:
         #       for each player), occurs for a third time since the start of the game 
         #       (not necessarily in succession): Declare draw
         
-        # NOT IMPLEMENTED (save space)
+        for count in self.visited.values():
+            if count >= 3:
+                return 0
 
         # 5.    The players have had their 360th turn without a winner being declared:
         #       Declare a draw.
 
-        elif self.turn == 360:
+        if self.turn == 360:
             return 0
 
         return None
@@ -347,8 +351,18 @@ class GameState:
                 new_state.friends += fr_pieces
                 new_state.enemies += en_pieces
 
+        new_state.hash = new_state.__hash__()
+        new_state.__update_visited()
         return new_state
 
+    def __update_visited(self):
+        """
+        Updated dictionary of visited hashes with the hash for this state
+        """
+        try:
+            self.visited[self.hash] += 1
+        except:
+            self.visited[self.hash] = 1
     
     def next_transitions(self):
         """
@@ -401,19 +415,6 @@ class GameState:
         else:
             return []
         
-    # def next_all_moves_for_side(pieces, num_tokens_waiting, is_upper):
-
-    #     if num_tokens_waiting < GameState.MAX_TOKENS:
-    #         moves = GameState.__throw_moves(num_tokens_waiting, is_upper)
-    #     else:
-    #         moves = []
-
-    #     for (_, loc) in pieces:
-    #         slide_moves = GameState.__slide_moves(loc)
-    #         swing_moves = GameState.__swing_moves(pieces, loc, slide_moves)
-    #         moves += slide_moves + swing_moves
-    #     return moves
-
 
     def __throw_transitions(self, num_tokens_waiting, is_friend):
         """
@@ -421,6 +422,11 @@ class GameState:
 
         Return tuple: ("THROW", token, location)
         """
+        if is_friend and self.friend_throws == GameState.MAX_TOKENS:
+            return []
+        elif not is_friend and self.enemy_throws == GameState.MAX_TOKENS:
+            return []
+
         is_upper = self.is_upper if is_friend else not self.is_upper
         if is_upper:
             # farthest_r = max(4 - num_tokens_waiting, -4)
@@ -437,41 +443,54 @@ class GameState:
         
         return self.__prune_throws(moves, is_friend)
 
+
     def __prune_throws(self, throws, is_friend):
         throw_enemies = self.enemies if is_friend else self.friends
         pruned_throws = []
 
         if is_friend:
-            tokens_remaining = self.friend_throws
+            num_tokens_used = self.friend_throws
         else:
-            tokens_remaining = self.enemy_throws
+            num_tokens_used = self.enemy_throws
         if (is_friend and self.is_upper) or (not is_friend and not self.is_upper):
             pruned_throws += GameState.__append_throws_distant(
-                throws, tokens_remaining, throw_enemies, True)
+                throws, num_tokens_used, throw_enemies, True)
         else:
             pruned_throws += GameState.__append_throws_distant(
-                throws, tokens_remaining, throw_enemies, False)
+                throws, num_tokens_used, throw_enemies, False)
 
         if len(pruned_throws) == 0:
-            # There are opposing tokens less than MAX_DISTANCE away
+            # There are opposing tokens less than MAX_DISTANCE away, add all throws within
+            # MAX_THROW_ENEMY_DISTANCE of an enemy only.
             for throw in throws:
-                (_, _, throw_loc) = throw
-                for (_, enemy_loc) in throw_enemies:
-                    if distance(throw_loc, enemy_loc) <= GameState.MAX_THROW_ENEMY_DISTANCE:
+                (_, throw_token, throw_loc) = throw
+                for (enemy_token, enemy_loc) in throw_enemies:
+                    if (distance(throw_loc, enemy_loc) <= GameState.MAX_THROW_ENEMY_DISTANCE
+                        and enemy_token == defeat_token(throw_token)):
                         pruned_throws.append(throw)
                         break
 
         return pruned_throws
 
     @staticmethod
-    def __append_throws_distant(throws, tokens_remaining, throw_enemies, is_upper):
-        # farthest_r = -4 if is_upper else 4
-        farthest_r = GameState.farthest_r(tokens_remaining, is_upper)
+    def __append_throws_distant(throws, num_tokens_used, throw_enemies, is_upper):
+        """
+        Return a list of throws to the farthest reachable row only if no enemy is closer, otherwise
+        return an empty list.
+
+        """
+
+        farthest_r = GameState.farthest_r(num_tokens_used, is_upper)
         nearest_throw_enemy_r = -4 if is_upper else 4
         pruned_throws = []
+
+        # Find row of nearest enemy row
         for (_, (r, _)) in throw_enemies:
-            if r > nearest_throw_enemy_r:
+            if (r > nearest_throw_enemy_r and is_upper) or (r < nearest_throw_enemy_r and not is_upper) :
                 nearest_throw_enemy_r = r
+
+        # Make pruned_throws all throws to the farthest reachable row only if the closest enemy
+        # is further than that, otherwise make it empty
         if abs(farthest_r - nearest_throw_enemy_r) > GameState.MAX_THROW_ENEMY_DISTANCE:
             for throw in throws:
                 (_, _, (throw_r, _)) = throw
@@ -480,11 +499,15 @@ class GameState:
         return pruned_throws
 
     @staticmethod
-    def farthest_r(num_tokens_waiting, is_upper):
+    def farthest_r(num_tokens_used, is_upper):
+        """
+        Return the farthest reachable row for a side
+        
+        """
         if is_upper:
-            return max(4 - num_tokens_waiting, -4)
+            return max(4 - num_tokens_used, -4)
         else:
-            return min(-4 + num_tokens_waiting, 4)
+            return min(-4 + num_tokens_used, 4)
 
 
     def __slide_transitions(loc):
@@ -529,6 +552,10 @@ class GameState:
         return result
 
     def moves_to_pieces(self, move_transitions, is_friend):
+        """
+        Convert a list of move commands of type: (type, from_loc, to_loc) to a list of pieces of
+        type: (token, to_loc).
+        """
         pieces = self.friends if is_friend else self.enemies
         return_pieces = []
         for (_, from_loc, to_loc) in move_transitions:
