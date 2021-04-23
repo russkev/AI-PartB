@@ -33,7 +33,7 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        test()
+        # test()
         random_turns = 20
         if self.root.turn < random_turns:
             return biased_random_move(self.root, is_friend=True)
