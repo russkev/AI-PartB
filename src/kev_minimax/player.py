@@ -63,8 +63,11 @@ def minimax_simultaneous(game_state: GameState):
 
 
 def evaluate_all_moves(game_state: GameState, fr_transitions, depth):
+    weights = [1, 100, -10, -5, -1, -0.5]
+    range = 0.3
+
     if depth == 0:
-        score, _ = evaluate_state(game_state, [1, 100, -10, -5, -1, -0.5])
+        score, _ = evaluate_state(game_state, weights)
         return None, score
 
 
@@ -77,15 +80,19 @@ def evaluate_all_moves(game_state: GameState, fr_transitions, depth):
 
     value_matrix = []
 
+    best_score = -1000
+
     for fr_transition in fr_transitions:
         row = []
         for en_transition in en_transitions:
             state_ij = game_state.update(en_transition, fr_transition)
-            fr_transitions_ij = state_ij.next_friend_transitions()
-            _, value_ij = evaluate_all_moves(state_ij, fr_transitions_ij, depth-1)
-            row.append(value_ij)
-        if depth == 2:
-            print("**")
+            score_ij, _ = evaluate_state(state_ij, weights)
+            if score_ij > best_score:
+                best_score = score_ij
+            if score_ij > best_score - range:
+                fr_transitions_ij = state_ij.next_friend_transitions()
+                _, score_ij = evaluate_all_moves(state_ij, fr_transitions_ij, depth-1)
+            row.append(score_ij)
         value_matrix.append(row)
     
     return solve_game(value_matrix)
