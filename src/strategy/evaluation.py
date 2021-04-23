@@ -5,7 +5,12 @@ import numpy as np
 from heapq import heappush, heappop
 
 
-def eval_function(game_state: GameState):
+def evaluate_state_normalised(game_state: GameState):
+    final_score, scores = evaluate_state(game_state)
+    final_score = np.tanh(final_score)
+    return final_score, scores
+
+def evaluate_state(game_state: GameState, weights=None):
     """
     takes a game state and estimates the future utility.
     """
@@ -35,14 +40,15 @@ def eval_function(game_state: GameState):
         distance_from_safeline_diff
     ]
 
-    weights = [
-        1,
-        50,
-        -10,
-        -5,
-        -1,
-        -1
-    ]
+    if weights is None:
+        weights = [
+            1,
+            50,
+            -10,
+            -5,
+            -1,
+            -1
+        ]
 
     final_scores = np.multiply(scores, weights)
 

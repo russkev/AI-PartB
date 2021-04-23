@@ -2,7 +2,7 @@ import math
 import copy
 import random
 from state.game_state import GameState
-from strategy.evaluation import eval_function
+from strategy.evaluation import evaluate_state, evaluate_state_normalised
 
 def minimax_paranoid_reduction(game_state):
     state_tree = build_state_tree(game_state)
@@ -34,12 +34,19 @@ def build_state_tree(game_state: GameState):
     random.shuffle(e_moves)
 
     for i, f_move in enumerate(f_moves):
-        minimax_tree.append((f_moves[i], []))
+        minimax_tree.append((f_move, []))
         for j, e_move in enumerate(e_moves):
-            eval_score, _ = eval_function(game_state.update(e_move, f_move))
-            minimax_tree[i][1].append((e_moves[j],  eval_score))
+            eval_score, _ = evaluate_state(game_state.update(e_move, f_move))
+            minimax_tree[i][1].append((e_move,  eval_score))
 
     return minimax_tree
+
+
+
+
+
+
+
 
 
 # def minimax(node, depth, maximising_player):
