@@ -38,7 +38,7 @@ class Player:
         if self.root.turn < random_turns:
             return biased_random_move(self.root, is_friend=True)
         else:
-            return monte_carlo_tree_search(self.root, 200).action[0]
+            return monte_carlo_tree_search(self.root, 200).action
             # return sm_mcts(self.root, 200).action[0]
 
 

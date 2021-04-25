@@ -3,7 +3,7 @@ from state.token import defeat_token
 from state.location import distance
 import numpy as np
 from heapq import heappush, heappop
-
+from time import time
 
 def evaluate_state_normalised(game_state: GameState):
     final_score, scores = evaluate_state(game_state)
@@ -14,21 +14,28 @@ def evaluate_state(game_state: GameState, weights=None):
     """
     takes a game state and estimates the future utility.
     """
+
+    # Fast
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
     dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
     dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
 
+    # Fast
+    num_killed_diff = num_opponents_killed_difference(game_state)
+
+    # Fast
     num_friend_useless, num_enemy_useless = num_useless(game_state)
     num_useless_diff = num_friend_useless - num_enemy_useless
 
-    num_killed_diff = num_opponents_killed_difference(game_state)
+    # Medium
     pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
 
+    # Slowest
     friend_move_to_pieces = game_state.moves_to_pieces(game_state.next_friend_moves(), is_friend=True)
     enemy_move_to_pieces = game_state.moves_to_pieces(game_state.next_enemy_moves(), is_friend=False)
-
     pieces_in_move_range_diff = num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
+    # Slow
     distance_from_safeline_diff = distance_from_safeline_difference(game_state)
 
     scores = [
@@ -53,6 +60,34 @@ def evaluate_state(game_state: GameState, weights=None):
     final_scores = np.multiply(scores, weights)
 
     return np.dot(scores, weights), final_scores
+
+def greedy_choose(game_state: GameState):
+    friend_transitions = game_state.next_friend_transitions()
+
+    queue = []
+    for friend_transition in friend_transitions:
+        # New game state based on possible friend transition (enemy pieces stay the same)
+        new_state = game_state.update(friend_transition=friend_transition)
+
+        # Find the evaluation score
+        eval_score, scores = evaluate_state(new_state)
+
+        # Add to queue. Use negative of score as first element of tuple since it is a min heap
+        # A tuple of the individual scores are also included here for debugging purposes only
+        heappush(queue, (-1 * eval_score, tuple(scores), friend_transition))
+
+    (best_score, best_scores, best_move) = heappop(queue)
+    possible_moves = [(best_score, best_scores, best_move)]
+
+    # Add all moves with the same best score to a list
+    for (curr_score, *rest) in queue:
+        if curr_score != best_score:
+            break
+        else:
+            possible_moves.append((curr_score, *rest))
+
+    # Randomly pick from that list
+    return possible_moves[np.random.choice(len(possible_moves), 1)[0]][2]
 
 
 def num_moves_difference(game_state: GameState):

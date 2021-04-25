@@ -7,16 +7,10 @@ Kevin Russell 1084088
 """
 
 from random import randrange
-from time import time
-from state.location import distance
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
-import numpy as np
 from numpy.random import choice
 from state.node_mcts_simultaneous import Node
-
-
-
 
 EXPLORATION_CONSTANT = 0.1
 
@@ -167,8 +161,7 @@ def update_regret(root: Node, reward):
     Update the regret array of the particular node, taking the new reward into account
     """
     for friend_index in range(len(root.friend_transitions)):
-        root.regret[friend_index] += (regret_value(root,
-                                      friend_index, reward) - reward)
+        root.regret[friend_index] += (regret_value(root, friend_index, reward) - reward)
 
 
 def regret_value(node: Node, i, reward):

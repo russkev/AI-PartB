@@ -38,33 +38,7 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        friend_transitions = self.game_state.next_friend_transitions()
-
-        queue = []
-        for friend_transition in friend_transitions:
-            # New game state based on possible friend transition (enemy pieces stay the same)
-            new_state = self.game_state.update(friend_transition=friend_transition)
-            
-            # Find the evaluation score
-            eval_score, scores = evaluation_score(new_state)
-
-            # Add to queue. Use negative of score as first element of tuple since it is a min heap
-            # A tuple of the individual scores are also included here for debugging purposes only
-            heappush(queue, (-1 * eval_score, tuple(scores), friend_transition))
-
-        (best_score, best_scores, best_move) = heappop(queue)
-        possible_moves = [(best_score, best_scores, best_move)]
-
-        # Add all moves with the same best score to a list
-        for (curr_score, *rest) in queue:
-            if curr_score != best_score:
-                break
-            else:
-                possible_moves.append((curr_score, *rest))
-
-
-        # Randomly pick from that list
-        return possible_moves[np.random.choice(len(possible_moves), 1)[0]][2]
+        return eval.greedy_choose(self.game_state)
 
     def update(self, opponent_action, player_action):
         """
@@ -76,50 +50,4 @@ class Player:
         """
         self.game_state = self.game_state.update(
             opponent_action, player_action)
-
-def evaluation_score(game_state: GameState):
-    """
-    Custom evaluation function for this version of kev greedy
-
-    """
-
-
-    dist_to_killable_score_friend = eval.distance_to_killable_score(game_state, is_friend=True)
-    dist_to_killable_score_enemy = eval.distance_to_killable_score(game_state, is_friend=False)
-    dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
-
-    num_friend_useless, num_enemy_useless = eval.num_useless(game_state)
-    num_useless_diff = num_friend_useless - num_enemy_useless
-
-    num_killed_diff = eval.num_opponents_killed_difference(game_state)
-    pieces_in_throw_range_diff = eval.pieces_in_throw_range_difference(game_state)
-
-    friend_move_to_pieces = game_state.moves_to_pieces(game_state.next_friend_moves(), is_friend=True)
-    enemy_move_to_pieces = game_state.moves_to_pieces(game_state.next_enemy_moves(), is_friend=False)
-
-    pieces_in_move_range_diff = eval.num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
-
-    distance_from_safeline_diff = eval.distance_from_safeline_difference(game_state)
-
-    scores = [
-        dist_to_killable_score_diff,
-        num_killed_diff,
-        num_useless_diff,
-        pieces_in_throw_range_diff,
-        pieces_in_move_range_diff,
-        distance_from_safeline_diff
-    ]
-
-    weights = [
-        1,
-        50,
-        -10,
-        -5,
-        -1,
-        -1
-    ]
-
-    final_scores = np.multiply(scores, weights)
-
-    return np.dot(scores, weights), final_scores
         
