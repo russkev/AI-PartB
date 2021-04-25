@@ -15,27 +15,27 @@ def evaluate_state(game_state: GameState, weights=None):
     takes a game state and estimates the future utility.
     """
 
-    # Fast
+    # Distance to killable pieces score (fast)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
     dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
     dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
 
-    # Fast
+    # Number opponents killed (fast)
     num_killed_diff = num_opponents_killed_difference(game_state)
 
-    # Fast
+    # Number of useless pieces (fast)
     num_friend_useless, num_enemy_useless = num_useless(game_state)
     num_useless_diff = num_friend_useless - num_enemy_useless
 
-    # Medium
+    # Throw range (medium)
     pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
 
-    # Slowest
+    # Number of pieces that could be killed with a single move of the opponent (slowest)
     friend_move_to_pieces = game_state.moves_to_pieces(game_state.next_friend_moves(), is_friend=True)
     enemy_move_to_pieces = game_state.moves_to_pieces(game_state.next_enemy_moves(), is_friend=False)
     pieces_in_move_range_diff = num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
-    # Slow
+    # Total distance of pieces from the throw line (slow)
     distance_from_safeline_diff = distance_from_safeline_difference(game_state)
 
     scores = [
@@ -49,8 +49,8 @@ def evaluate_state(game_state: GameState, weights=None):
 
     if weights is None:
         weights = [
-            1,
-            50,
+            10,
+            200,
             -10,
             -5,
             -1,
@@ -140,12 +140,12 @@ def distance_from_safeline(game_state: GameState, is_friend):
         safe_row = GameState.farthest_r(
             game_state.friend_throws, game_state.is_upper)
         pieces = game_state.friends
-        is_upper = GameState.is_upper
+        is_upper = game_state.is_upper
     else:
         safe_row = GameState.farthest_r(
             game_state.enemy_throws, not game_state.is_upper)
         pieces = game_state.enemies
-        is_upper = not GameState.is_upper
+        is_upper = not game_state.is_upper
 
     total_distance = 0
 

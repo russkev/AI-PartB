@@ -6,4 +6,4 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from mcts_simultaneous.player import Player
+from mcts_regret.player import Player

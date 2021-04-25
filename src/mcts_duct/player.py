@@ -6,10 +6,13 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
+from random import randrange
+from time import time
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
-from strategy.mcts import monte_carlo_tree_search
-from state.node_mcts import Node
+import numpy as np
+from strategy.mcts_duct import Node, monte_carlo_tree_search, test
+from strategy.evaluation import greedy_choose
 
 class Player:
 
@@ -32,14 +35,12 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-
         # test()
         random_turns = 20
         if self.root.turn < random_turns:
-            return biased_random_move(self.root, is_friend=True)
+            return greedy_choose(self.root)
         else:
-            return monte_carlo_tree_search(self.root, 200).action
-            # return sm_mcts(self.root, 200).action[0]
+            return monte_carlo_tree_search(self.root, 10000)
 
 
     def update(self, opponent_action, player_action):
@@ -50,4 +51,6 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        self.root = Node(self.root.update(opponent_action, player_action))
+
+        self.root = self.root.update_node(opponent_action, player_action)
+

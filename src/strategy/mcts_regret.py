@@ -10,7 +10,7 @@ from random import randrange
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 from numpy.random import choice
-from state.node_mcts_simultaneous import Node
+from state.node_mcts_regret import Node
 
 EXPLORATION_CONSTANT = 0.1
 
