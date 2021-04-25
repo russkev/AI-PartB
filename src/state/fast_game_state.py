@@ -1,3 +1,4 @@
+from copy import deepcopy
 from itertools import product
 from state.board import Board
 
@@ -26,11 +27,17 @@ class GameState:
         if friend_move[2] != enemy_move[2]:
             self.__battle(enemy_move[2]) # in the case friend and enemy don't move to the same location
 
+        # return self
+
+    def copy(self):
+        return GameState(self.upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
+
     def simulate_update(self, friend_move, enemy_move):
         """ creates a new gamestate to lookahead moves and states, does not modify actual game state."""
-        new_state = self.__make_copy()
-        new_state.update(friend_move, enemy_move)
-        return new_state
+        # new_state = self.__make_copy()
+        # new_state.update(friend_move, enemy_move)
+        # return new_state
+        return deepcopy(self).update(friend_move, enemy_move)
 
     def next_transitions(self):
         """ all possible permutations of next moves from the game state."""
@@ -119,7 +126,7 @@ class GameState:
             del reference[location]
 
     def __make_copy(self):
-        return GameState(self.upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
+        return GameState(self.upper, self.turn, self.friend_throws, self.enemy_throws, deepcopy(self.friends), deepcopy(self.enemies))
 
     def __str__(self):
         return "Turn: {}\nUpper: {}\nLower: {}".format(self.turn, self.friends.__str__(), self.enemies.__str__())
