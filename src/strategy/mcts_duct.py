@@ -14,6 +14,9 @@ Algorithm described here:
 https://dke.maastrichtuniversity.nl/m.winands/documents/sm-tron-bnaic2013.pdf
 and here:
 http://mlanctot.info/files/papers/cig14-smmctsggp.pdf
+and here:
+https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.704.9457&rep=rep1&type=pdf
+
 
 
 Also referenced these web pages:
@@ -26,6 +29,15 @@ https://github.com/AdamStelmaszczyk/gtsa/blob/master/cpp/gtsa.hpp
 Benchmarks:
 mcts_duct vs kev_greedy_5, 10,000 iterations per turn:
 Total: 32 | Wins: 15 | Draws: 14 | Losses: 3 | Average time: 13.5 minutes (810 seconds)
+
+Upper wins: 15/35, with ratio: 0.43
+Lower wins: 3/35, with ratio: 0.09
+Draws: 17/35, with ratio: 0.49
+
+mcts_duct vs kev_greedy_5, 1,000 iterations per turn:
+Upper wins: 5/35, with ratio: 0.14
+Lower wins: 17/35, with ratio: 0.49
+Draws: 13/35, with ratio: 0.37
 """
 
 from random import randrange

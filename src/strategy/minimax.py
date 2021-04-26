@@ -25,9 +25,9 @@ def max_layer(moves):
             max_index = i + 1
     return max_index
 
-def build_state_tree(game_state: GameState):
-    f_moves = game_state.next_friend_transitions()
-    e_moves = game_state.next_enemy_transitions()
+def build_state_tree(game_state):
+    f_moves = game_state.next_transitions_for_side(True)
+    e_moves = game_state.next_transitions_for_side(False)
     minimax_tree = []
 
     random.shuffle(f_moves)
@@ -36,8 +36,10 @@ def build_state_tree(game_state: GameState):
     for i, f_move in enumerate(f_moves):
         minimax_tree.append((f_move, []))
         for j, e_move in enumerate(e_moves):
-            eval_score, _ = evaluate_state(game_state.update(e_move, f_move))
+            # eval_score, _ = evaluate_state(game_state.update(e_move, f_move))
+            eval_score, _ = evaluate_state(copy.deepcopy(game_state).update(e_move, f_move))
             minimax_tree[i][1].append((e_move,  eval_score))
+            # minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).update(f_moves[i], e_moves[j]))))
 
     return minimax_tree
 
