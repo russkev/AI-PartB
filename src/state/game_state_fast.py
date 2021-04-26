@@ -15,13 +15,13 @@ class GameState:
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
-    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={}):
+    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None):
         self.is_upper = is_upper
         self.turn = turn
         self.friend_throws = friend_throws
         self.enemy_throws = enemy_throws
-        self.friends = friends
-        self.enemies = enemies
+        self.friends = {} if friends is None else friends
+        self.enemies = {} if enemies is None else enemies
 
     def update(self, friend_transition=None, enemy_transition=None):
         """ applies moves from both players to the game state, progressing the game one turn."""
@@ -270,7 +270,7 @@ class GameState:
         return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, deepcopy(self.friends), deepcopy(self.enemies))
 
     def __str__(self):
-        return "Turn: {}\nUpper: {}\nLower: {}".format(self.turn, self.friends.__str__(), self.enemies.__str__())
+        return f"Upper: {self.friends.__str__()}\nLower: {self.enemies.__str__()}\nTurn: {self.turn}\n"
 
     def __repr__(self):
         return self.__str__()

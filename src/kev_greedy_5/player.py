@@ -30,8 +30,7 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        self.game_state = GameState()
-        self.game_state.is_upper = player == "upper"
+        self.game_state = GameState(is_upper=(player == "upper"))
 
     def action(self):
         """
@@ -49,4 +48,5 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state.update(player_action, opponent_action)
+        asda = 5
         
