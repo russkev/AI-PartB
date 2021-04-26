@@ -2,12 +2,16 @@ from copy import deepcopy
 from itertools import product
 from referee.game import Game
 from state.board import Board
+from state.location import distance
+from state.token import defeat_token
 
 
 class GameState:
 
     MAX_THROWS = 9
-    # MAX_TURNS = 360
+    MAX_TURNS = 360
+    MAX_THROW_ENEMY_DISTANCE = 2
+
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
@@ -52,6 +56,7 @@ class GameState:
 
     def num_kills(self):
         return self.enemy_throws - self.num_enemies()
+
 
     def simulate_update(self, friend_move, enemy_move):
         """ creates a new gamestate to lookahead moves and states, does not modify actual game state."""
@@ -140,7 +145,76 @@ class GameState:
             for tok in ['r', 'p', 's']:
                 transitions.append(('THROW', tok, loc))
         
-        return transitions
+        return self.__prune_throws(transitions, is_friend)
+
+    def __prune_throws(self, throws, is_friend):
+        """
+        Prune throws that seem very unlikely to improve the score.
+
+        If enemies aren't within 2 units of the farthest throw row, the throws only the throws up 
+        to the farthest throw row are kept, otherwise only throws that throw a token to within 2
+        units of a killable opponent are kept
+
+        """
+        # Enemies to the current throw side
+        throw_enemies = self.enemies if is_friend else self.friends
+        pruned_throws = []
+
+        # Set num tokens used
+        if is_friend:
+            num_tokens_used = self.friend_throws
+        else:
+            num_tokens_used = self.enemy_throws
+
+        # Append throws to the farthest row if there are no opponents in range
+        if (is_friend and self.is_upper) or (not is_friend and not self.is_upper):
+            # Upper player
+            pruned_throws += GameState.__append_throws_distant(
+                throws, num_tokens_used, throw_enemies, True)
+        else:
+            # Lower player
+            pruned_throws += GameState.__append_throws_distant(
+                throws, num_tokens_used, throw_enemies, False)
+
+        # Append throws that are near opponents if opponent in range
+        if len(pruned_throws) == 0:
+            # There are opposing tokens less than MAX_DISTANCE away, add all throws within
+            # MAX_THROW_ENEMY_DISTANCE of an enemy only.
+            for throw in throws:
+                (_, throw_token, throw_loc) = throw
+                for enemy_loc, enemy_tokens, in throw_enemies.items():
+                    if (distance(throw_loc, enemy_loc) <= GameState.MAX_THROW_ENEMY_DISTANCE
+                            and enemy_tokens[0] == defeat_token(throw_token)):
+                        pruned_throws.append(throw)
+                        break
+
+        return pruned_throws
+
+    @staticmethod
+    def __append_throws_distant(throws, num_tokens_used, throw_enemies, is_upper):
+        """
+        Return a list of throws to the farthest reachable row only if no enemy is closer, otherwise
+        return an empty list.
+
+        """
+
+        farthest_r = GameState.farthest_r(num_tokens_used, is_upper)
+        nearest_throw_enemy_r = -4 if is_upper else 4
+        pruned_throws = []
+
+        # Find row of nearest enemy row
+        for (r, _) in throw_enemies.keys():
+            if (is_upper and r > nearest_throw_enemy_r) or (not is_upper and r < nearest_throw_enemy_r):
+                nearest_throw_enemy_r = r
+
+        # Make pruned_throws all throws to the farthest reachable row only if the closest enemy
+        # is further than that, otherwise make it empty
+        if abs(farthest_r - nearest_throw_enemy_r) > GameState.MAX_THROW_ENEMY_DISTANCE:
+            for throw in throws:
+                (_, _, (throw_r, _)) = throw
+                if throw_r == farthest_r:
+                    pruned_throws.append(throw)
+        return pruned_throws
 
     def __battle(self, location):
         """ checks for balles in the locations that have changed from the prior game state."""

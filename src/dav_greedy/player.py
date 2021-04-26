@@ -6,7 +6,7 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from state.fast_game_state import GameState
+from state.game_state_fast import GameState
 from strategy.minimax import minimax_paranoid_reduction
 
 class Player:
@@ -21,7 +21,7 @@ class Player:
         as Lower).
         """
         
-        self.game_state = GameState(upper=(player == "upper"), turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={})
+        self.game_state = GameState(is_upper=(player == "upper"))
 
     def action(self):
         """

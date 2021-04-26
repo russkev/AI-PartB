@@ -36,7 +36,7 @@ class Player:
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
-        of the game, select an action to play this turn.
+        of the game, select an action to play this turn.kev
         """
         return eval.greedy_choose(self.game_state)
 

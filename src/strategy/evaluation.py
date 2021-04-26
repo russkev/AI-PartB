@@ -4,6 +4,7 @@ from state.location import distance
 import numpy as np
 from heapq import heappush, heappop
 from time import time
+from state.token import defeat_by_token
 
 def evaluate_state_normalised(game_state: GameState):
     final_score, scores = evaluate_state(game_state)
@@ -248,3 +249,108 @@ def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
             if curr_loc == opponent_loc and curr_tokens[0] == defeat_token(opponent_token):
                 count += len(curr_tokens)
     return count
+
+def goal_reward(game_state: GameState):
+    """
+    Return False if goal state has not been reached
+    Return 1 if friend has won
+    Return 0 if a draw has occurred
+    Return -1 if the enemy has won
+    """
+    # 0.    If both players have throws available, goal state definitely has not been reached
+
+    if game_state.friend_throws < game_state.MAX_TOKENS and game_state.enemy_throws < game_state.MAX_TOKENS:
+        return None
+
+    # 1.    One player has no remaining throws and all of their tokens have been defeated:
+    #       If the other player still has tokens or throws, declare that player the winner.
+    #       Otherwise, declare a draw.
+
+    friend_moves_are_available = __moves_are_available(is_friend=True)
+    enemy_moves_are_available = __moves_are_available(is_friend=False)
+
+    if friend_moves_are_available and not enemy_moves_are_available:
+        return 1
+    elif not friend_moves_are_available and enemy_moves_are_available:
+        return -1
+    elif not friend_moves_are_available and not enemy_moves_are_available:
+        return 0
+
+    # 2.    A token is invincible if it cannot be defeated by the opponent’s remaining tokens,
+    #       and the opponent has no remaining throws. Both players have an invincible token:
+    #       Declare a draw
+
+    friend_is_invincible = __player_is_invincible(is_friend=True)
+    enemy_is_invincible = __player_is_invincible(is_friend=False)
+
+    if friend_is_invincible and enemy_is_invincible:
+        return 0
+
+    # 3.    One player has an invincible token (see condition 2) and the other has only one
+    #       remaining token (not invincible): Declare the player with the invincible token the
+    #       winner
+
+    elif friend_is_invincible and not enemy_is_invincible and game_state.num_enemies() == 1:
+        return 1
+    elif not friend_is_invincible and enemy_is_invincible and game_state.num_friends() == 1:
+        return -1
+
+    # 4.    One game configuration (with the same number of tokens with each symbol and
+    #       controlling player occupying each hex, and the same number of throws remaining
+    #       for each player), occurs for a third time since the start of the game
+    #       (not necessarily in succession): Declare draw
+
+    # NOT IMPLEMENTED
+
+    # 5.    The players have had their 360th turn without a winner being declared:
+    #       Declare a draw.
+
+    if game_state.turn == GameState.MAX_TURNS:
+        return 0
+
+    return None
+
+def __moves_are_available(game_state: GameState, is_friend):
+    """
+    Return true if there are any moves or throws available to the player
+    """
+    if is_friend:
+        return not (game_state.friend_throws == game_state.MAX_TOKENS and len(game_state.friends) == 0)
+    else:
+        return not (game_state.enemy_throws == game_state.MAX_TOKENS and len(game_state.enemies) == 0)
+
+
+def __player_is_invincible(game_state: GameState, is_friend):
+    """
+    Return true if player has at least one token that it is impossible for the other side
+    to kill
+    """
+    if is_friend and game_state.enemy_throws < GameState.MAX_TOKENS:
+        return False
+    elif not is_friend and game_state.friend_throws < GameState.MAX_TOKENS:
+        return False
+    friend_tokens = __tokens_on_board(is_friend=True)
+    enemy_tokens = __tokens_on_board(is_friend=False)
+    if len(friend_tokens) == 3 and len(enemy_tokens) == 3:
+        return False
+    if is_friend:
+        for friend_token in friend_tokens:
+            if defeat_by_token(friend_token) not in enemy_tokens:
+                return True
+
+        return False
+    else:
+        for enemy_token in enemy_tokens:
+            if defeat_by_token(enemy_token) not in friend_tokens:
+                return True
+        return False
+
+def __tokens_on_board(game_state: GameState, is_friend) -> set:
+    """
+    Return a set of all tokens currently on the board for a player
+    """
+    pieces = game_state.friends if is_friend else game_state.enemies
+    tokens = set()
+    for (token, _) in pieces:
+        tokens.add(token)
+    return tokens
