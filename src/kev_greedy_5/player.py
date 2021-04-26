@@ -9,7 +9,7 @@ Kevin Russell 1084088
 from random import randrange
 from heapq import heappush, heappop
 
-from state.game_state import GameState
+from state.game_state_fast import GameState
 from state.token import defeats
 from state.location import distance
 from strategy.greedy_util import opponent_distance_scores
@@ -48,6 +48,5 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        self.game_state = self.game_state.update(
-            opponent_action, player_action)
+        self.game_state.update(player_action, opponent_action)
         

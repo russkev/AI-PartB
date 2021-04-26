@@ -1,4 +1,4 @@
-from state.game_state import GameState
+from state.game_state_fast import GameState
 from state.token import defeat_token
 from state.location import distance
 import numpy as np
@@ -31,9 +31,12 @@ def evaluate_state(game_state: GameState, weights=None):
     pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
 
     # Number of pieces that could be killed with a single move of the opponent (slowest)
-    friend_move_to_pieces = game_state.moves_to_pieces(game_state.next_friend_moves(), is_friend=True)
-    enemy_move_to_pieces = game_state.moves_to_pieces(game_state.next_enemy_moves(), is_friend=False)
-    pieces_in_move_range_diff = num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces)
+    friend_move_to_pieces = game_state.moves_to_pieces(
+        game_state.next_swing_slides(is_friend=True), is_friend=True)
+    enemy_move_to_pieces = game_state.moves_to_pieces(
+        game_state.next_swing_slides(is_friend=False), is_friend=False)
+    pieces_in_move_range_diff = num_can_be_move_killed_difference(
+        game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
     # Total distance of pieces from the throw line (slow)
     distance_from_safeline_diff = distance_from_safeline_difference(game_state)
@@ -67,7 +70,9 @@ def greedy_choose(game_state: GameState):
     queue = []
     for friend_transition in friend_transitions:
         # New game state based on possible friend transition (enemy pieces stay the same)
-        new_state = game_state.update(friend_transition=friend_transition)
+        new_state = game_state.copy()
+        new_state.update(friend_transition=friend_transition)
+        # new_state = game_state.update(friend_transition=friend_transition)
 
         # Find the evaluation score
         eval_score, scores = evaluate_state(new_state)
@@ -118,12 +123,12 @@ def pieces_in_throw_range(game_state: GameState, is_friend):
     count = 0
 
     if is_upper:
-        for (_, (r, _)) in pieces:
+        for (r, _) in pieces.keys():
             if r <= opponent_row:
                 count += 1
 
     else:
-        for (_, (r, _)) in pieces:
+        for (r, _) in pieces.keys():
             if r >= opponent_row:
                 count += 1
 
@@ -139,56 +144,46 @@ def distance_from_safeline(game_state: GameState, is_friend):
     if is_friend:
         safe_row = GameState.farthest_r(
             game_state.friend_throws, game_state.is_upper)
-        pieces = game_state.friends
+        reference = game_state.friends
         is_upper = game_state.is_upper
     else:
         safe_row = GameState.farthest_r(
             game_state.enemy_throws, not game_state.is_upper)
-        pieces = game_state.enemies
+        reference = game_state.enemies
         is_upper = not game_state.is_upper
 
     total_distance = 0
 
     if is_upper:
-        for (_, (r, _)) in pieces:
+        for (r, _) in reference.keys():
             total_distance += max(0, safe_row - r)
     else:
-        for (_, (r, _)) in pieces:
+        for (r, _) in reference.keys():
             total_distance += max(0, r - safe_row)
     
     return total_distance
 
 def num_opponents_killed_difference(game_state: GameState):
     return game_state.num_kills() - game_state.num_deaths()
-    # return (game_state.enemy_throws - len(game_state.enemies) - 
-    #         (game_state.friend_throws - len(game_state.friends)))
-    # # return (num_opponents_killed(game_state, is_friend=True)
-    # #         - num_opponents_killed(game_state, is_friend=False))
-
-
-def num_opponents_killed(game_state: GameState, is_friend):
-    pieces = game_state.enemies if is_friend else game_state.friends
-    throws = game_state.enemy_throws if is_friend else game_state.friend_throws
-    return throws - len(pieces)
 
 
 def num_useless(game_state: GameState):
     f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
 
-    for (token, _) in game_state.friends:
-        if token == 'r':
-            f_rocks += 1
-        elif token == 'p':
-            f_papers += 1
+    for tokens in game_state.friends.values():
+        if tokens[0] == 'r':
+            f_rocks += len(tokens)
+        elif tokens[0] == 'p':
+            f_papers += len(tokens)
         else:
-            f_scissors += 1
-    for (token, _) in game_state.enemies:
-        if token == 'r':
-            e_rocks += 1
-        elif token == 'p':
-            e_papers += 1
+            f_scissors += len(tokens)
+    for tokens in game_state.enemies.values():
+        if tokens[0] == 'r':
+            f_rocks += len(tokens)
+        elif tokens[0] == 'p':
+            f_papers += len(tokens)
         else:
-            e_scissors += 1
+            f_scissors += len(tokens)
 
     friend_useless = max(f_rocks - e_scissors, 0) + max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
     enemy_useless = max(e_rocks - f_scissors, 0) + max(e_papers - f_rocks, 0) + max(e_scissors - f_papers, 0)
@@ -216,11 +211,11 @@ def distance_to_killable_score(game_state: GameState, is_friend):
 
     min_distances = []
 
-    for (en_token, en_loc) in opponent_side_pieces:
+    for en_loc, en_tokens in opponent_side_pieces.items():
         min_distance = 8
         min_fr_loc = None
-        for (fr_token, fr_loc) in this_side_pieces:
-            if en_token == defeat_token(fr_token):
+        for fr_loc, fr_tokens in this_side_pieces.items():
+            if en_tokens[0] == defeat_token(fr_tokens[0]):
                 token_distance = distance(fr_loc, en_loc)
                 if token_distance < min_distance:
                     min_distance = token_distance
@@ -239,59 +234,17 @@ def distance_to_killable_score(game_state: GameState, is_friend):
     return return_distances
 
 
-
-
-
-    # for (f_token, f_loc) in game_state.friends:
-    #     # min_distance = 8
-    #     # min_loc = None
-    #     for (e_token, e_loc) in game_state.enemies:
-    #         if e_token == defeat_token(f_token):
-    #             t_distance = distance(f_loc, e_loc)
-    #             if t_distance < min_distance:
-    #                 min_distance = t_distance
-    #                 min_loc = e_loc
-    #     if min_loc is not None:
-    #         visited_enemies.add()
-    #     friend_distance += 8 - min_distance
-    #             # friend_defeat_found = True
-
-    # # friend_distance = friend_distance if friend_defeat_found else 20
-    # return friend_distance
-
 def num_can_be_move_killed_difference(game_state, friend_move_to_pieces, enemy_move_to_pieces):
     return (num_can_be_move_killed(game_state, enemy_move_to_pieces, is_friend=True) 
             -num_can_be_move_killed(game_state, friend_move_to_pieces, is_friend=False)) 
 
 def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
 
-    pieces = game_state.friends if is_friend else game_state.enemies
+    reference = game_state.friends if is_friend else game_state.enemies
     count = 0
 
-    for (curr_token, curr_loc) in pieces:
+    for curr_loc, curr_tokens in reference:
         for (opponent_token, opponent_loc) in move_to_pieces:
-            if curr_loc == opponent_loc and curr_token == defeat_token(opponent_token):
-                count += 1
+            if curr_loc == opponent_loc and curr_tokens[0] == defeat_token(opponent_token):
+                count += len(curr_tokens)
     return count
-
-
-    # this_side_pieces = game_state.friends if is_friend else game_state.enemies
-    # opponent_side_pieces = game_state.enemies if is_friend else game_state.friends
-    # move_killed_count = throw_killed_count = 0
-    # # enemy_move_transitions = game_state.next_enemy_moves()
-    # for (fr_token, fr_loc) in this_side_pieces:
-    #     for (transition_type, en_from_loc, en_to_loc) in opponent_transitions:
-    #         if transition_type != "THROW":
-    #             for (en_token, en_loc) in opponent_side_pieces:
-    #                 if en_loc == en_to_loc:
-    #                     break
-    #             if 
-
-
-    #         if fr_loc == en_loc:
-    #             if transition_type != "THROW":
-    #                 if fr_
-    #                 move_killed_count += 1
-                
-    # return move_killed_count, throw_killed_count
-

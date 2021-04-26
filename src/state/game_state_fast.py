@@ -1,5 +1,6 @@
 from copy import deepcopy
 from itertools import product
+from referee.game import Game
 from state.board import Board
 
 
@@ -10,27 +11,47 @@ class GameState:
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
-    def __init__(self, upper=True, turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={}):
-        self.upper = upper
+    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={}):
+        self.is_upper = is_upper
         self.turn = turn
         self.friend_throws = friend_throws
         self.enemy_throws = enemy_throws
         self.friends = friends
         self.enemies = enemies
 
-    def update(self, friend_move, enemy_move):
+    def update(self, friend_transition=None, enemy_transition=None):
         """ applies moves from both players to the game state, progressing the game one turn."""
         self.turn += 1
-        self.__apply_move(friend_move, True)
-        self.__apply_move(enemy_move, False)
-        self.__battle(friend_move[2])  # index 2 is the destination of the move
-        if friend_move[2] != enemy_move[2]:
-            self.__battle(enemy_move[2]) # in the case friend and enemy don't move to the same location
+        self.__apply_move(friend_transition, True)
+        self.__apply_move(enemy_transition, False)
+        if friend_transition is not None:
+            self.__battle(friend_transition[2])  # index 2 is the destination of the move
+            if enemy_transition is not None and friend_transition[2] != enemy_transition[2]:
+                self.__battle(enemy_transition[2]) # in the case friend and enemy don't move to the same location
+        elif enemy_transition is not None:
+            self.__battle(enemy_transition[2])
 
-        # return self
+    def copy(self) -> "GameState":
+        return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
 
-    def copy(self):
-        return GameState(self.upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
+    def num_friends(self):
+        return self.num_in_play_for_side(is_friend=True)
+    
+    def num_enemies(self):
+        return self.num_in_play_for_side(is_friend=False)
+
+    def num_in_play_for_side(self, is_friend):
+        reference = self.friends if is_friend else self.enemies
+        count = 0
+        for tokens in reference.values():
+            count += len(tokens)
+        return count
+
+    def num_deaths(self):
+        return self.friend_throws - self.num_friends()
+
+    def num_kills(self):
+        return self.enemy_throws - self.num_enemies()
 
     def simulate_update(self, friend_move, enemy_move):
         """ creates a new gamestate to lookahead moves and states, does not modify actual game state."""
@@ -43,25 +64,47 @@ class GameState:
         """ all possible permutations of next moves from the game state."""
         return list(product(self.next_transitions_for_side(True), self.next_transitions_for_side(False)))
 
+    def next_friend_transitions(self):
+        return self.next_transitions_for_side(is_friend=True)
+    
+    def next_enemy_transitions(self):
+        return self.next_transitions_for_side(is_friend=False)
+
     def next_transitions_for_side(self, is_friend):
         """ all possible moves for one side from the current game state."""
         return self.__slide_transitions(is_friend) + self.__swing_transitions(is_friend) + self.__throw_transitions(is_friend)
 
+    def next_swing_slides(self, is_friend):
+        return self.__slide_transitions(is_friend) + self.__swing_transitions(is_friend)
+
     def __apply_move(self, move, is_friend):
         """ makes the move for a given side on the current game state."""
-        reference = self.friends if is_friend else self.enemies
-        if move[0] == 'THROW':
-            # move indexes are move type, token, location
-            reference[move[2]] = reference[move[2]] + [move[1]] if move[2] in reference else [move[1]]  # add token to location
-            if is_friend: self.friend_throws += 1
-            else: self.enemy_throws += 1
+        if move is not None:
+            reference = self.friends if is_friend else self.enemies
+            if move[0] == 'THROW':
+                # move indexes are move type, token, location
+                reference[move[2]] = reference[move[2]] + [move[1]] if move[2] in reference else [move[1]]  # add token to location
+                if is_friend: self.friend_throws += 1
+                else: self.enemy_throws += 1
 
-        else:
-            # move indexes are move type, start location, end location
-            token = reference[move[1]].pop()  # get one of the tokens at the location
-            reference[move[2]] = reference[move[2]] + [token] if move[2] in reference else [token]  # add token to location
-            
-            if len(reference[move[1]]) == 0: del reference[move[1]]  # there are no more tokens at the location
+            else:
+                # move indexes are move type, start location, end location
+                # token = reference[move[1]].pop()  # get one of the tokens at the location
+                token = GameState.__pop(reference, move[1])
+                reference[move[2]] = reference[move[2]] + [token] if move[2] in reference else [token]  # add token to location
+                
+
+    def __pop(target_dict, location):
+        """
+        Pop an element from target_dict at location in a way that overwrites the original list
+        (this prevents shallow copy issues)
+        """
+        removed = target_dict[location][0]
+        target_dict[location] = target_dict[location][1:]
+        if len(target_dict[location]) == 0:
+            del target_dict[location]
+        return removed
+
 
     def __slide_transitions(self, is_friend):
         """ calculates all slide transitions for a side."""
@@ -91,7 +134,7 @@ class GameState:
         throw_count = self.friend_throws if is_friend else self.enemy_throws
         if throw_count >= GameState.MAX_THROWS: return transitions # no move throw moves are allowed
         
-        upper = (self.upper and is_friend) or ((not self.upper) and (not is_friend))
+        upper = (self.is_upper and is_friend) or ((not self.is_upper) and (not is_friend))
         for loc in GameState.board.get_throw_options(upper, throw_count):
             # any kind of pruning logic for throws should be imported and run here.
             for tok in ['r', 'p', 's']:
@@ -125,8 +168,32 @@ class GameState:
         if len(reference[location]) == 0:  # remove location reference if no more tokens are on location
             del reference[location]
 
+    @staticmethod
+    def farthest_r(num_tokens_used, is_upper):
+        """
+        Return the farthest reachable row for a side
+        
+        """
+        if is_upper:
+            return max(4 - num_tokens_used, -4)
+        else:
+            return min(-4 + num_tokens_used, 4)
+
+    def moves_to_pieces(self, swing_slide_transitions, is_friend):
+        """
+        Convert a list of move commands of type: (type, from_loc, to_loc) to a list of pieces of
+        type: (token, to_loc).
+        """
+        reference = self.friends if is_friend else self.enemies
+        return_pieces = []
+        for (_, from_loc, to_loc) in swing_slide_transitions:
+            for piece_loc, tokens in reference.items():
+                if from_loc == piece_loc:
+                    return_pieces.append((tokens[0], to_loc))
+        return return_pieces
+
     def __make_copy(self):
-        return GameState(self.upper, self.turn, self.friend_throws, self.enemy_throws, deepcopy(self.friends), deepcopy(self.enemies))
+        return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, deepcopy(self.friends), deepcopy(self.enemies))
 
     def __str__(self):
         return "Turn: {}\nUpper: {}\nLower: {}".format(self.turn, self.friends.__str__(), self.enemies.__str__())
