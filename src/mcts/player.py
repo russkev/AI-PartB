@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 from time import time
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
 from strategy.mcts import Node, monte_carlo_tree_search, test
@@ -37,7 +37,7 @@ class Player:
         if self.root.turn < random_turns:
             return greedy_choose(self.root)
         else:
-            return monte_carlo_tree_search(self.root, 3000).action
+            return monte_carlo_tree_search(self.root, 10).action
 
 
     def update(self, opponent_action, player_action):

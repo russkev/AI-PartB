@@ -1,4 +1,4 @@
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from state.token import defeat_token
 from state.location import distance
 import numpy as np

@@ -6,7 +6,7 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.minimax_equilibrium import minimax_equilibrium
 
 class Player:
@@ -28,7 +28,7 @@ class Player:
         of the game, select an action to play this turn.
         """
 
-        return minimax_equilibrium(self.game_state, depth=2, cutoff_range=100000)
+        return minimax_equilibrium(self.game_state, depth=1, cutoff_range=100000)
         
     def update(self, opponent_action, player_action):
         """

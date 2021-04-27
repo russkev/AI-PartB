@@ -1,7 +1,7 @@
 import math
 import copy
 import random
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.evaluation import evaluate_state, evaluate_state_normalised
 
 def minimax_paranoid_reduction(game_state):

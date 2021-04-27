@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 from time import time
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
 from strategy.mcts_duct import Node, monte_carlo_tree_search, test

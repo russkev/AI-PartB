@@ -6,7 +6,7 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from state.game_state_fast import GameState
+from state.game_state import GameState
 import numpy as np
 from numpy.random import choice
 from strategy.evaluation import evaluate_state

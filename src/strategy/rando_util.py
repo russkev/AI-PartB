@@ -6,7 +6,7 @@ David Peel 964682
 Kevin Russell 1084088
 """
 from random import randrange, random
-from state.game_state_fast import GameState
+from state.game_state import GameState
 
 
 def random_move(state: GameState):

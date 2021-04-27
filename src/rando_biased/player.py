@@ -7,7 +7,7 @@ Kevin Russell 1084088
 """
 
 from random import randrange
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 
 class Player:

@@ -43,7 +43,7 @@ Draws: 13/35, with ratio: 0.37
 from random import randrange
 from time import time
 from random import shuffle
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
 import numpy as np

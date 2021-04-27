@@ -12,7 +12,7 @@ http://mlanctot.info/files/papers/cig14-smmctsggp.pdf
 """
 
 from random import randrange
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 from numpy.random import choice
 from state.node_mcts_regret import Node

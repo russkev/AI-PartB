@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 from time import time
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
 import numpy as np
@@ -60,22 +60,24 @@ def print_stats(root: Node):
     print(f"* children:         {len(root.children)}")
     print(f"* Exploration constant: {EXPLORATION_CONSTANT}")
     print(f"* WINNER STATS")
-    winner = choose_winner(root)
-    print(f"* {winner.q_value:4} / {winner.num_visits:4}  {(winner.q_value / winner.num_visits):+.3f}  move: {winner.action}")
+    winning_node = choose_winner(root)
+    if winning_node.num_visits > 0:
+        ratio = winning_node.q_value / winning_node.num_visits
+    else:
+        ratio = 0
+    print(f"* {winning_node.q_value:4} / {winning_node.num_visits:4}  "
+        + f"{ratio:+.3f}  "
+        + f"move: {winning_node.action}")
     print(f"* CHILD STATS")
 
     print(f"* Score  | Visits | Ratio  |          Move")
     print(f"* -------+--------+--------+-----------------------------------")
     for child in root.children:
-        print(f"* {child.q_value:+6} | {child.num_visits:+6} | {(child.q_value / child.num_visits):+.3f} | move: {child.action}")
-
-        # print(
-        #     f"* score: {child.q_value} "
-        #     + f"visits: {child.num_visits} "
-        #     + f"UCT: {get_uct(child, EXPLORATION_CONSTANT):.3f} "
-        #     + f"move: {child.action}"
-        # )
-
+        if child.num_visits > 0:
+            ratio = child. q_value / child.num_visits
+        else:
+            ratio = 0
+        print(f"* {child.q_value:+6} | {child.num_visits:+6} | {ratio:+.3f} | move: {child.action}")
 
 
 def traverse(node: Node):

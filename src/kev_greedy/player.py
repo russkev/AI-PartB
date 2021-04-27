@@ -6,13 +6,10 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from random import randrange
-from heapq import heappush, heappop
-
 from state.game_state import GameState
-from state.token import defeats
-from state.location import distance
-from strategy.greedy_util import opponent_distance_scores
+import strategy.evaluation as eval
+import numpy as np
+
 
 class Player:
 
@@ -25,20 +22,14 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        self.game_state = GameState()        
-        self.game_state.is_upper = player == "upper"
+        self.game_state = GameState(is_upper=(player == "upper"))
 
-    
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
-        of the game, select an action to play this turn.
+        of the game, select an action to play this turn.kev
         """
-        queue = opponent_distance_scores(self.game_state)
-        (best_score, best_move) = heappop(queue)
-        return best_move
-        
-    
+        return eval.greedy_choose(self.game_state)
 
     def update(self, opponent_action, player_action):
         """
@@ -48,10 +39,5 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        self.game_state = self.game_state.update(opponent_action, player_action)
-
-    
-
-
-
-
+        self.game_state.update(player_action, opponent_action)
+        

@@ -6,9 +6,8 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from state.game_state_fast import GameState
+from state.game_state import GameState
 from strategy.evaluation import greedy_choose
-from strategy.rando_util import biased_random_move
 from strategy.mcts_regret import monte_carlo_tree_search
 from state.node_mcts_regret import Node
 
@@ -36,7 +35,7 @@ class Player:
         if self.root.turn < random_turns:
             return greedy_choose(self.root)
         else:
-            return monte_carlo_tree_search(self.root, 1000)
+            return monte_carlo_tree_search(self.root, 10)
 
 
     def update(self, opponent_action, player_action):
