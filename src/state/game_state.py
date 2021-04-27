@@ -14,7 +14,7 @@ from state.token import defeat_by_token, defeat_token
 
 class GameState:
 
-    MAX_TOKENS = 9
+    MAX_THROWS = 9
     MAX_TURNS = 360
     MAX_THROW_ENEMY_DISTANCE = 2
 
@@ -111,7 +111,7 @@ class GameState:
         """
         # 0.    If both players have throws available, goal state definitely has not been reached
 
-        if self.friend_throws < self.MAX_TOKENS and self.enemy_throws < self.MAX_TOKENS:
+        if self.friend_throws < self.MAX_THROWS and self.enemy_throws < self.MAX_THROWS:
             return None
 
         
@@ -173,18 +173,18 @@ class GameState:
         Return true if there are any moves or throws available to the player
         """
         if is_friend:
-            return not (self.friend_throws == self.MAX_TOKENS and len(self.friends) == 0)
+            return not (self.friend_throws == self.MAX_THROWS and len(self.friends) == 0)
         else:
-            return not (self.enemy_throws == self.MAX_TOKENS and len(self.enemies) == 0)
+            return not (self.enemy_throws == self.MAX_THROWS and len(self.enemies) == 0)
 
     def __player_is_invincible(self, is_friend):
         """
         Return true if player has at least one token that it is impossible for the other side
         to kill
         """
-        if is_friend and self.enemy_throws < self.MAX_TOKENS:
+        if is_friend and self.enemy_throws < self.MAX_THROWS:
             return False
-        elif not is_friend and self.friend_throws < self.MAX_TOKENS:
+        elif not is_friend and self.friend_throws < self.MAX_THROWS:
             return False
         friend_tokens = self.__tokens_on_board(is_friend=True)
         enemy_tokens = self.__tokens_on_board(is_friend=False)
@@ -409,7 +409,7 @@ class GameState:
         # pieces = self.friends if is_friend else self.enemies
         num_tokens_waiting = self.friend_throws if is_friend else self.enemy_throws
 
-        if num_tokens_waiting < GameState.MAX_TOKENS:
+        if num_tokens_waiting < GameState.MAX_THROWS:
             return self.__throw_transitions(num_tokens_waiting, is_friend)
         else:
             return []
@@ -421,9 +421,9 @@ class GameState:
 
         Return tuple: ("THROW", token, location)
         """
-        if is_friend and self.friend_throws == GameState.MAX_TOKENS:
+        if is_friend and self.friend_throws == GameState.MAX_THROWS:
             return []
-        elif not is_friend and self.enemy_throws == GameState.MAX_TOKENS:
+        elif not is_friend and self.enemy_throws == GameState.MAX_THROWS:
             return []
 
         is_upper = self.is_upper if is_friend else not self.is_upper

@@ -15,6 +15,7 @@ def evaluate_state(game_state: GameState, weights=None):
     """
     takes a game state and estimates the future utility.
     """
+    # TODO Maybe an evaluation for the likelihood of opponent being invincible
 
     # Distance to killable pieces score (fast)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
@@ -33,9 +34,9 @@ def evaluate_state(game_state: GameState, weights=None):
 
     # Number of pieces that could be killed with a single move of the opponent (slowest)
     friend_move_to_pieces = game_state.moves_to_pieces(
-        game_state.next_swing_slides(is_friend=True), is_friend=True)
+        game_state.next_swing_slide_transitions(is_friend=True), is_friend=True)
     enemy_move_to_pieces = game_state.moves_to_pieces(
-        game_state.next_swing_slides(is_friend=False), is_friend=False)
+        game_state.next_swing_slide_transitions(is_friend=False), is_friend=False)
     pieces_in_move_range_diff = num_can_be_move_killed_difference(
         game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
@@ -259,15 +260,15 @@ def goal_reward(game_state: GameState):
     """
     # 0.    If both players have throws available, goal state definitely has not been reached
 
-    if game_state.friend_throws < game_state.MAX_TOKENS and game_state.enemy_throws < game_state.MAX_TOKENS:
+    if game_state.friend_throws < game_state.MAX_THROWS and game_state.enemy_throws < game_state.MAX_THROWS:
         return None
 
     # 1.    One player has no remaining throws and all of their tokens have been defeated:
     #       If the other player still has tokens or throws, declare that player the winner.
     #       Otherwise, declare a draw.
 
-    friend_moves_are_available = __moves_are_available(is_friend=True)
-    enemy_moves_are_available = __moves_are_available(is_friend=False)
+    friend_moves_are_available = __moves_are_available(game_state, is_friend=True)
+    enemy_moves_are_available = __moves_are_available(game_state, is_friend=False)
 
     if friend_moves_are_available and not enemy_moves_are_available:
         return 1
@@ -280,8 +281,8 @@ def goal_reward(game_state: GameState):
     #       and the opponent has no remaining throws. Both players have an invincible token:
     #       Declare a draw
 
-    friend_is_invincible = __player_is_invincible(is_friend=True)
-    enemy_is_invincible = __player_is_invincible(is_friend=False)
+    friend_is_invincible = __player_is_invincible(game_state, is_friend=True)
+    enemy_is_invincible = __player_is_invincible(game_state, is_friend=False)
 
     if friend_is_invincible and enemy_is_invincible:
         return 0
@@ -315,9 +316,9 @@ def __moves_are_available(game_state: GameState, is_friend):
     Return true if there are any moves or throws available to the player
     """
     if is_friend:
-        return not (game_state.friend_throws == game_state.MAX_TOKENS and len(game_state.friends) == 0)
+        return not (game_state.friend_throws == game_state.MAX_THROWS and len(game_state.friends) == 0)
     else:
-        return not (game_state.enemy_throws == game_state.MAX_TOKENS and len(game_state.enemies) == 0)
+        return not (game_state.enemy_throws == game_state.MAX_THROWS and len(game_state.enemies) == 0)
 
 
 def __player_is_invincible(game_state: GameState, is_friend):
@@ -325,12 +326,12 @@ def __player_is_invincible(game_state: GameState, is_friend):
     Return true if player has at least one token that it is impossible for the other side
     to kill
     """
-    if is_friend and game_state.enemy_throws < GameState.MAX_TOKENS:
+    if is_friend and game_state.enemy_throws < GameState.MAX_THROWS:
         return False
-    elif not is_friend and game_state.friend_throws < GameState.MAX_TOKENS:
+    elif not is_friend and game_state.friend_throws < GameState.MAX_THROWS:
         return False
-    friend_tokens = __tokens_on_board(is_friend=True)
-    enemy_tokens = __tokens_on_board(is_friend=False)
+    friend_tokens = __tokens_on_board(game_state, is_friend=True)
+    enemy_tokens = __tokens_on_board(game_state, is_friend=False)
     if len(friend_tokens) == 3 and len(enemy_tokens) == 3:
         return False
     if is_friend:

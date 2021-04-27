@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 import copy
-from state.game_state import GameState
+from state.game_state_fast import GameState
 from strategy.rando_util import random_move
 
 class Player:
@@ -22,9 +22,7 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        self.game_state = GameState()        
-        if player == "lower":
-            self.game_state.is_upper = False
+        self.game_state = GameState(is_upper=(player == "upper"))
 
     
     def action(self):
@@ -32,13 +30,6 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        # # possible_moves = GameState.next_all_moves_for_side(
-        # #     self.game_state.friends, self.game_state.friend_throws, self.game_state.is_upper
-        # # )
-        # possible_moves = self.game_state.next_friend_transitions()
-        # # self.game_state.next_moves()
-        # piece = possible_moves[randrange(len(possible_moves))]
-        # return piece
         return random_move(self.game_state)
     
 
@@ -50,6 +41,6 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        self.game_state = self.game_state.update(opponent_action, player_action)
+        self.game_state.update(player_action, opponent_action)
 
 

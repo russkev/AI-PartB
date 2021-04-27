@@ -6,7 +6,7 @@ David Peel 964682
 Kevin Russell 1084088
 """
 from random import randrange, random
-from state.game_state import GameState
+from state.game_state_fast import GameState
 
 
 def random_move(state: GameState):
@@ -21,9 +21,11 @@ def biased_random_move(state: GameState, is_friend: bool):
     Randomly chooses a transition but favours moving rather than throwing,
     if there are 3 current player tokens on the board, throwing is discouraged even more.
     """
-    move_transitions = state.next_friend_moves() if is_friend else state.next_enemy_moves()
-    throw_transitions = state.next_friend_throws() if is_friend else state.next_enemy_throws()
-    num_on_board = len(state.friends) if is_friend else len(state.enemies)
+
+    move_transitions = state.next_swing_slide_transitions(is_friend)
+    throw_transitions = state.next_throw_transitions(is_friend)
+    num_on_board = state.num_friends() if is_friend else state.num_enemies()
+
     if len(throw_transitions) == 0 and len(move_transitions) == 0:
         return None    
     if len(throw_transitions) == 0:

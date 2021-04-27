@@ -57,14 +57,6 @@ class GameState:
     def num_kills(self):
         return self.enemy_throws - self.num_enemies()
 
-
-    def simulate_update(self, friend_move, enemy_move):
-        """ creates a new gamestate to lookahead moves and states, does not modify actual game state."""
-        # new_state = self.__make_copy()
-        # new_state.update(friend_move, enemy_move)
-        # return new_state
-        return deepcopy(self).update(friend_move, enemy_move)
-
     def next_transitions(self):
         """ all possible permutations of next moves from the game state."""
         return list(product(self.next_transitions_for_side(True), self.next_transitions_for_side(False)))
@@ -77,10 +69,10 @@ class GameState:
 
     def next_transitions_for_side(self, is_friend):
         """ all possible moves for one side from the current game state."""
-        return self.__slide_transitions(is_friend) + self.__swing_transitions(is_friend) + self.__throw_transitions(is_friend)
+        return self.next_slide_transitions(is_friend) + self.next_swing_transitions(is_friend) + self.next_throw_transitions(is_friend)
 
-    def next_swing_slides(self, is_friend):
-        return self.__slide_transitions(is_friend) + self.__swing_transitions(is_friend)
+    def next_swing_slide_transitions(self, is_friend):
+        return self.next_slide_transitions(is_friend) + self.next_swing_transitions(is_friend)
 
     def __apply_move(self, move, is_friend):
         """ makes the move for a given side on the current game state."""
@@ -111,7 +103,7 @@ class GameState:
         return removed
 
 
-    def __slide_transitions(self, is_friend):
+    def next_slide_transitions(self, is_friend):
         """ calculates all slide transitions for a side."""
         transitions = []
         reference = self.friends if is_friend else self.enemies
@@ -120,7 +112,7 @@ class GameState:
                 transitions.append(("SLIDE", loc, new_loc))
         return transitions
 
-    def __swing_transitions(self, is_friend):
+    def next_swing_transitions(self, is_friend):
         """ calculates all swing transitions for a side."""
         transitions = []
         reference = self.friends if is_friend else self.enemies
@@ -133,7 +125,7 @@ class GameState:
 
         return transitions
 
-    def __throw_transitions(self, is_friend):
+    def next_throw_transitions(self, is_friend):
         """ calculates all throw transitions for a side."""
         transitions = []
         throw_count = self.friend_throws if is_friend else self.enemy_throws
@@ -266,8 +258,6 @@ class GameState:
                     return_pieces.append((tokens[0], to_loc))
         return return_pieces
 
-    def __make_copy(self):
-        return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, deepcopy(self.friends), deepcopy(self.enemies))
 
     def __str__(self):
         return f"Upper: {self.friends.__str__()}\nLower: {self.enemies.__str__()}\nTurn: {self.turn}\n"
