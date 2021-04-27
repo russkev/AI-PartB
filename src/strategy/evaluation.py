@@ -350,8 +350,9 @@ def __tokens_on_board(game_state: GameState, is_friend) -> set:
     """
     Return a set of all tokens currently on the board for a player
     """
-    pieces = game_state.friends if is_friend else game_state.enemies
-    tokens = set()
-    for (token, _) in pieces:
-        tokens.add(token)
-    return tokens
+    reference = game_state.friends if is_friend else game_state.enemies
+    tokens_types = set()
+    for tokens in reference.values():
+        for token in tokens:
+            tokens_types.add(token)
+    return tokens_types

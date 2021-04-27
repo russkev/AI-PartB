@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 from random import randrange
 from time import time
-from state.game_state import GameState
+from state.game_state_fast import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
 from strategy.mcts_duct import Node, monte_carlo_tree_search, test
@@ -25,10 +25,7 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        game_state = GameState()
-        self.root = Node(game_state)
-        if player == "lower":
-            self.root.is_upper = False
+        self.root = Node(GameState(is_upper=(player == "upper")))
 
     def action(self):
         """
@@ -39,7 +36,7 @@ class Player:
         if self.root.turn < random_turns:
             return greedy_choose(self.root)
         else:
-            return monte_carlo_tree_search(self.root, 10000)
+            return monte_carlo_tree_search(self.root, 10)
 
 
     def update(self, opponent_action, player_action):
@@ -51,5 +48,5 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
 
-        self.root = self.root.update_node(opponent_action, player_action)
+        self.root = self.root.update_node(player_action,opponent_action)
 

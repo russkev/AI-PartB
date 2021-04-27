@@ -43,7 +43,7 @@ Draws: 13/35, with ratio: 0.37
 from random import randrange
 from time import time
 from random import shuffle
-from state.game_state import GameState
+from state.game_state_fast import GameState
 from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
 import numpy as np
@@ -129,7 +129,7 @@ def traverse(node: Node):
         # node = best_uct(node)
         node = get_best_child(node)
 
-    if node.goal_reward() is not None:
+    if eval.goal_reward(node) is not None:
         # Node is terminal
         return node
     else:
@@ -144,7 +144,7 @@ def rollout(node: Node, playout_amount):
     Once terminal state reached, return the score in relation to root.friend 
     (+1 for win, 0 for draw, -1 for lose) 
     """
-    goal_reward = node.goal_reward()
+    goal_reward = eval.goal_reward(node)
     if goal_reward is not None:
         return goal_reward
     else:
@@ -154,7 +154,7 @@ def rollout(node: Node, playout_amount):
                 goal_reward = evaluate_state(game_state)
                 break
             game_state = rollout_policy(game_state)
-            goal_reward = game_state.goal_reward()
+            goal_reward = eval.goal_reward(game_state)
             playout_amount -= 1
     return goal_reward
 
@@ -183,7 +183,9 @@ def rollout_policy(game_state: "Node") -> GameState:
     rollout_count += 1
     friend_choice = biased_random_move(game_state, is_friend=True)
     enemy_choice = biased_random_move(game_state, is_friend=False)
-    return game_state.update(enemy_choice, friend_choice)
+    new_state = game_state.copy()
+    new_state.update(friend_choice, enemy_choice)
+    return new_state
 
 
 def back_propagate(node: "Node", result):
@@ -234,7 +236,6 @@ def choose_winner(node: Node):
     Traditionally this is the one with the most visits.
     """
 
-
     best_friend_visits = 0
     best_enemy_visits = 0
     best_i = 0
@@ -258,14 +259,6 @@ def choose_winner(node: Node):
     
     winning_node = node.matrix[best_i][best_j]
     return node.friend_transitions[best_i], node.enemy_transitions[best_j], winning_node
-            
-
-    # max_visits = 0
-    # for child in node.children:
-    #     if child.num_visits > max_visits:
-    #         max_visits = child.num_visits
-    #         winner = child
-    # return winner
 
 
 def pick_unvisited_child(node: "Node") -> Node:
@@ -273,6 +266,7 @@ def pick_unvisited_child(node: "Node") -> Node:
     From all the children of node, randomly choose one that has not been visited and return it.
     Possible to use a heuristic here instead of randomness.
     """
+
     unvisited = node.unvisited_children()
     shuffle(unvisited)
     num_unvisited = len(unvisited)
@@ -284,7 +278,6 @@ def pick_unvisited_child(node: "Node") -> Node:
         if num_unvisited == 1:
             node.is_fully_expanded = True
         return choice
-
 
 
 def get_best_child(node: Node):
@@ -302,13 +295,11 @@ def get_best_child(node: Node):
     Best UCT is the one with the highest value for the friend and lowest value for the enemy
     """
 
+    # Best UCT for friend
     best_uct_friend = float("-inf")
     best_row_index = 0
-
     row_indices = list(range(len(node.matrix)))
-    col_indices = list(range(len(node.matrix[0])))
     shuffle(row_indices)
-    shuffle(col_indices)
 
     for i in row_indices:
         row_score_sum, row_visit_sum = sum_stats(node, i, is_row=True)
@@ -316,9 +307,13 @@ def get_best_child(node: Node):
         if uct > best_uct_friend:
             best_uct_friend = uct
             best_row_index = i
-            
+    
+    # Best UCT for enemy
     best_uct_enemy = float("inf")
     best_col_index = 0
+    col_indices = list(range(len(node.matrix[0])))
+    shuffle(col_indices)
+
     for j in col_indices:
         col_score_sum, col_visit_sum = sum_stats(node, j, is_row=False)
         uct = get_uct(node.num_visits, col_visit_sum, col_score_sum, -EXPLORATION_CONSTANT)
@@ -326,6 +321,7 @@ def get_best_child(node: Node):
             best_uct_enemy = uct
             best_col_index = j
 
+    # Final choice
     return node.matrix[best_row_index][best_col_index]
 
                 
@@ -348,7 +344,7 @@ def add_children(node: "Node"):
         node.enemy_transitions = node.next_enemy_transitions()
         node.matrix = [
             [
-                node.update_node(enemy_transition, friend_transition, parent=node)
+                node.update_node(friend_transition, enemy_transition, parent=node)
                     for enemy_transition in node.enemy_transitions
             ] 
             for friend_transition in node.friend_transitions
