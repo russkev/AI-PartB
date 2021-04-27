@@ -68,7 +68,7 @@ class Node(GameState):
     def __repr__(self):
         return f"{self.q_value}/{self.num_visits}"
 
-    def update_node(self, player_action, opponent_action, parent=None):
+    def make_updated_node(self, player_action, opponent_action, parent=None):
         """
         If the new move is in the tree, return that instead of creating a new root
         """

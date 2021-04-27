@@ -49,6 +49,6 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
 
-        self.root = self.root.update_node(player_action, opponent_action)
+        self.root = self.root.make_updated_node(player_action, opponent_action)
         asda = 5
 

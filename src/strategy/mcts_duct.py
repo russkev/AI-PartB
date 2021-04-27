@@ -126,7 +126,6 @@ def traverse(node: Node):
 
     # Find a node that hasn't been fully expanded
     while node.is_fully_expanded:
-        # node = best_uct(node)
         node = get_best_child(node)
 
     if eval.goal_reward(node) is not None:
@@ -344,7 +343,7 @@ def add_children(node: "Node"):
         node.enemy_transitions = node.next_enemy_transitions()
         node.matrix = [
             [
-                node.update_node(friend_transition, enemy_transition, parent=node)
+                node.make_updated_node(friend_transition, enemy_transition, parent=node)
                     for enemy_transition in node.enemy_transitions
             ] 
             for friend_transition in node.friend_transitions
@@ -363,6 +362,5 @@ def test():
     node.friends = [('r', (-3, 0)), ('s', (3,1))]
     node.enemies = [('s', (-4, 0)), ('p', (-4,4))]
     result = monte_carlo_tree_search(node, num_iterations=20)
-    asad = 45
     print(result.action)
     # print("Hello, World!")

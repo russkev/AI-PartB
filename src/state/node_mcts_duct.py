@@ -75,7 +75,7 @@ class Node(GameState):
                     unvisited.append(child)
         return unvisited
 
-    def update_node(self, friend_transition, enemy_transition, parent = None):
+    def make_updated_node(self, friend_transition, enemy_transition, parent = None):
         """
         If the new state already exists in the matrix, return that, otherwise return a fresh node
 
