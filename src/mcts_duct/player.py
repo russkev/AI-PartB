@@ -6,8 +6,13 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
+from random import randrange
+from time import time
 from state.game_state import GameState
-from strategy.minimax import minimax_paranoid_reduction
+from strategy.rando_util import biased_random_move
+import numpy as np
+from strategy.mcts_duct import Node, monte_carlo_tree_search, test
+from strategy.evaluation import greedy_choose
 
 class Player:
 
@@ -20,17 +25,20 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        
-        self.game_state = GameState(is_upper=(player == "upper"))
+        self.root = Node(GameState(is_upper=(player == "upper")))
 
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
+        random_turns = 20
+        if self.root.turn < random_turns:
+            return greedy_choose(self.root)
+        else:
+            return monte_carlo_tree_search(self.root, 10)
 
-        return minimax_paranoid_reduction(self.game_state)
-        
+
     def update(self, opponent_action, player_action):
         """
         Called at the end of each turn to inform this player of both
@@ -39,10 +47,6 @@ class Player:
         The parameter opponent_action is the opponent's chosen action,
         and player_action is this instance's latest chosen action.
         """
-        self.game_state.update(player_action, opponent_action)
 
-    
-
-
-
+        self.root = self.root.make_updated_node(player_action,opponent_action)
 

@@ -1,7 +1,8 @@
 import math
 import copy
 import random
-
+from state.game_state import GameState
+from strategy.evaluation import evaluate_state, evaluate_state_normalised
 
 def minimax_paranoid_reduction(game_state):
     state_tree = build_state_tree(game_state)
@@ -24,22 +25,7 @@ def max_layer(moves):
             max_index = i + 1
     return max_index
 
-# def build_state_tree(game_state):
-#     f_moves = game_state.next_friend_transitions()
-#     e_moves = game_state.next_enemy_transitions()
-#     minimax_tree = []
-
-#     random.shuffle(f_moves)
-#     random.shuffle(e_moves)
-
-#     for i, f_move in enumerate(f_moves):
-#         minimax_tree.append((f_moves[i], []))
-#         for j, e_move in enumerate(e_moves):
-#             minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).simulate_moves(f_moves[i], e_moves[j]))))
-
-#     return minimax_tree
-
-def build_state_tree(game_state):
+def build_state_tree(game_state: GameState):
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
     minimax_tree = []
@@ -48,18 +34,22 @@ def build_state_tree(game_state):
     random.shuffle(e_moves)
 
     for i, f_move in enumerate(f_moves):
-        minimax_tree.append((f_moves[i], []))
+        minimax_tree.append((f_move, []))
         for j, e_move in enumerate(e_moves):
-            minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).update(f_moves[i], e_moves[j]))))
+            # eval_score, _ = evaluate_state(game_state.update(e_move, f_move))
+            game_state_ij = game_state.copy()
+            game_state_ij.update(f_move, e_move)
+            eval_score, _ = evaluate_state(game_state_ij)
+            minimax_tree[i][1].append((e_move,  eval_score))
+            # minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).update(f_moves[i], e_moves[j]))))
 
     return minimax_tree
 
-def eval_function(game_state):
-    """
-    takes a game state and estimates the future utility.
-    """
 
-    return 1.0
+
+
+
+
 
 
 

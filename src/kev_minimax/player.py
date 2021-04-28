@@ -7,7 +7,7 @@ Kevin Russell 1084088
 """
 
 from state.game_state import GameState
-from strategy.minimax import minimax_paranoid_reduction
+from strategy.minimax_equilibrium import minimax_equilibrium
 
 class Player:
 
@@ -20,7 +20,6 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        
         self.game_state = GameState(is_upper=(player == "upper"))
 
     def action(self):
@@ -29,7 +28,7 @@ class Player:
         of the game, select an action to play this turn.
         """
 
-        return minimax_paranoid_reduction(self.game_state)
+        return minimax_equilibrium(self.game_state, depth=1, cutoff_range=100000)
         
     def update(self, opponent_action, player_action):
         """
@@ -42,6 +41,7 @@ class Player:
         self.game_state.update(player_action, opponent_action)
 
     
+
 
 
 
