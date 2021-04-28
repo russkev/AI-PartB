@@ -32,11 +32,11 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        random_turns = 20
-        if self.root.turn < random_turns:
+        greedy_turns = 4
+        if self.root.turn < greedy_turns:
             return greedy_choose(self.root)
         else:
-            return monte_carlo_tree_search(self.root, 10)
+            return monte_carlo_tree_search(self.root, num_iterations=10, playout_amount=6, node_cutoff=1)
 
 
     def update(self, opponent_action, player_action):

@@ -17,7 +17,11 @@ http://mlanctot.info/files/papers/cig14-smmctsggp.pdf
 and here:
 https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.704.9457&rep=rep1&type=pdf
 
+UCT with prior knowledge:
+https://hal.inria.fr/inria-00164003/document
 
+Using evaluation functions in Monte Carlo Tree Search:
+https://www.sciencedirect.com/science/article/pii/S0304397516302717
 
 Also referenced these web pages:
 
@@ -48,12 +52,16 @@ from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
 import numpy as np
 from state.node_mcts_duct import Node
-EXPLORATION_CONSTANT = 0.9 # np.sqrt(2)
+EXPLORATION_CONSTANT = 0.4 # np.sqrt(2)
 DEBUG_MODE = False
+USE_PRIOR = False
+NUM_PRIOR_VISITS = 4
+USE_PRUNING = True
+NUM_TO_KEEP = 5
 rollout_count = 0
 
 
-def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6) -> Node:
+def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, node_cutoff=100) -> Node:
     """
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
     a maximum number of iterations must be used to provide a cutoff.
@@ -65,7 +73,7 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6) -
     root.parent = None
     while (root.num_visits < num_iterations):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
-        leaf = traverse(root)
+        leaf = traverse(root, node_cutoff)
         # Make random moves to terminal and record the win, lose or draw score
         simulation_result = rollout(leaf, playout_amount)
         # Update all nodes in the appropriate branch with the simulation result (again, branch does
@@ -107,7 +115,7 @@ def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
     print(f"* Score  | Visits | Ratio  |          Move")
     print(f"* -------+--------+--------+-----------------------------------")
     for i in range(len(root.matrix)):
-        row_score, row_visits = sum_stats(root, i, is_row=True)
+        row_score, row_visits, _ = sum_stats(root, i, is_row=True)
         if row_visits > 0:
             ratio = row_score / row_visits
         else:
@@ -115,7 +123,7 @@ def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
         print(f"* {row_score:+6} | {row_visits:+6} | {ratio:+.3f} | move: {root.friend_transitions[i]}")
 
 
-def traverse(node: Node):
+def traverse(node: Node, node_cutoff):
     """
     Starting at the main root, traverse the tree. Use the UCT value to decide which child to visit 
     in each step. 
@@ -132,7 +140,7 @@ def traverse(node: Node):
         # Node is terminal
         return node
     else:
-        add_children(node)
+        add_children(node, node_cutoff)
 
     return pick_unvisited_child(node)
 
@@ -150,18 +158,18 @@ def rollout(node: Node, playout_amount):
         game_state = rollout_policy(node)
         while goal_reward is None:
             if playout_amount == 0:
-                goal_reward = evaluate_state(game_state)
+                goal_reward = evaluate_state_ternary(game_state)
                 break
             game_state = rollout_policy(game_state)
             goal_reward = eval.goal_reward(game_state)
             playout_amount -= 1
     return goal_reward
 
-def evaluate_state(game_state: GameState):
+def evaluate_state_ternary(game_state: GameState):
     """
     Return 
-        1   if evaluation function thinks a win is likely,
-        0   if a draw is likely
+        +1  if evaluation function thinks a win is likely,
+         0  if a draw is likely
         -1  if a lose is likely
     """
 
@@ -215,17 +223,20 @@ def sum_stats(node: Node, index, is_row=True):
     """
     score_sum = 0
     visit_sum = 0
+    eval_sum = 0
     if is_row:
         for j in range(len(node.matrix[0])):
             curr_node: Node = node.matrix[index][j]
             score_sum += curr_node.q_value
             visit_sum += curr_node.num_visits
+            eval_sum += curr_node.evaluation_score
     else:
         for i in range(len(node.matrix)):
             curr_node: Node = node.matrix[i][index]
             score_sum += curr_node.q_value
             visit_sum += curr_node.num_visits
-    return score_sum, visit_sum
+            eval_sum += curr_node.evaluation_score
+    return score_sum, visit_sum, eval_sum
 
 
 
@@ -245,13 +256,13 @@ def choose_winner(node: Node):
     shuffle(col_indices)
 
     for i in row_indices:
-        _, row_num_visits = sum_stats(node, i, is_row=True)
+        _, row_num_visits, _ = sum_stats(node, i, is_row=True)
         if row_num_visits > best_friend_visits:
             best_friend_visits = row_num_visits
             best_i = i
     
     for j in col_indices:
-        _, col_num_visits = sum_stats(node, j, is_row=False)
+        _, col_num_visits, _ = sum_stats(node, j, is_row=False)
         if row_num_visits > best_enemy_visits:
             best_enemy_visits = col_num_visits
             best_j = j
@@ -266,7 +277,10 @@ def pick_unvisited_child(node: "Node") -> Node:
     Possible to use a heuristic here instead of randomness.
     """
 
-    unvisited = node.unvisited_children()
+    if USE_PRIOR:
+        unvisited = node.unvisited_children(NUM_PRIOR_VISITS)
+    else:
+        unvisited = node.unvisited_children()
     shuffle(unvisited)
     num_unvisited = len(unvisited)
     if num_unvisited == 0:
@@ -301,7 +315,7 @@ def get_best_child(node: Node):
     shuffle(row_indices)
 
     for i in row_indices:
-        row_score_sum, row_visit_sum = sum_stats(node, i, is_row=True)
+        row_score_sum, row_visit_sum, _ = sum_stats(node, i, is_row=True)
         uct = get_uct(node.num_visits, row_visit_sum, row_score_sum, EXPLORATION_CONSTANT)
         if uct > best_uct_friend:
             best_uct_friend = uct
@@ -314,8 +328,8 @@ def get_best_child(node: Node):
     shuffle(col_indices)
 
     for j in col_indices:
-        col_score_sum, col_visit_sum = sum_stats(node, j, is_row=False)
-        uct = get_uct(node.num_visits, col_visit_sum, col_score_sum, -EXPLORATION_CONSTANT)
+        col_score_sum, col_visit_sum, _ = sum_stats(node, j, is_row=False)
+        uct = get_uct(node.num_visits, col_visit_sum, col_score_sum, EXPLORATION_CONSTANT)
         if uct < best_uct_enemy:
             best_uct_enemy = uct
             best_col_index = j
@@ -332,23 +346,104 @@ def get_uct(parent_visits, visits, score, c):
     return score / visits + c * np.sqrt(np.log(parent_visits) / visits)
 
 
-def add_children(node: "Node"):
+def add_children(node: "Node", node_cutoff):
     """
     Calculate all friend and enemy moves that can be reached from the node state. 
     
     Add them to the node matrix as children.
     """
+    # TODO for USE_PRIOR, figure out whether the parent needs to be updated with the new number
+    # of visits and the updated q_score
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
-        node.matrix = [
-            [
-                node.make_updated_node(friend_transition, enemy_transition, parent=node)
-                    for enemy_transition in node.enemy_transitions
-            ] 
-            for friend_transition in node.friend_transitions
-        ]
+        if USE_PRIOR:
+            node.matrix = [
+                [
+                    make_updated_node_with_prior(node, friend_transition, enemy_transition, NUM_PRIOR_VISITS)
+                        for enemy_transition in node.enemy_transitions
+                ]
+                for friend_transition in node.friend_transitions
+            ]
+            # If node is root, add the appropriate number of prior visits
+            
+            node.num_visits += len(node.matrix) * len(node.matrix[0])
+        else:
+            node.matrix = [
+                [
+                    make_updated_node_with_eval_score(node, friend_transition, enemy_transition)
+                        for enemy_transition in node.enemy_transitions
+                ] 
+                for friend_transition in node.friend_transitions
+            ]
+        if USE_PRUNING:
+            prune_children(node, node_cutoff)
 
+def prune_children(node: Node, node_cutoff):
+    """
+    Use the evaluation function to prune the friend and enemy moves under consideration.
+    """
+    friend_scores = []
+    for i in range(len(node.matrix)):
+        _, _, row_score = sum_stats(node, i, is_row=True)
+        friend_scores.append((row_score, i))
+
+    enemy_scores = []
+    for j in range(len(node.matrix[0])):
+        _, _, col_score = sum_stats(node, j, is_row=False)
+        enemy_scores.append((col_score, j))
+
+    friend_scores.sort(reverse=True)
+    enemy_scores.sort(reverse=False)
+    friend_scores = friend_scores[:node_cutoff]
+    enemy_scores = enemy_scores[:node_cutoff]
+
+    new_fr_transitions = [node.friend_transitions[x] for _, x in friend_scores]
+    new_en_transitions = [node.enemy_transitions[x] for _, x in enemy_scores]
+
+    new_matrix = [
+        [
+            node.matrix[i][j] for _, j in enemy_scores
+        ]
+        for _, i in friend_scores
+    ]
+    
+    node.friend_transitions = new_fr_transitions
+    node.enemy_transitions = new_en_transitions
+    node.matrix = new_matrix
+
+
+def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition, num_prior_visits):
+    """
+    Make new node and give it existing visited and q_value counts based on the evaluation function
+    return.
+    """
+    updated_node = node.copy_node_state()
+    updated_node.update(friend_transition, enemy_transition)
+    updated_node.parent = node
+    updated_node.evaluation_score, _ = eval.evaluate_state(updated_node)
+    # sigmoid_val = sigmoid(evaluation, 0.005)
+    tanh_val = np.tanh(updated_node.evaluation_score*0.005)
+    updated_node.num_visits = num_prior_visits
+    updated_node.q_value = int(tanh_val * num_prior_visits)
+    
+    return updated_node
+
+def make_updated_node_with_eval_score(node: Node, friend_transition, enemy_transition):
+    """
+    Make new node and give it the evaluation score
+    """
+    updated_node = node.copy_node_state()
+    updated_node.update(friend_transition, enemy_transition)
+    updated_node.parent = node
+    updated_node.evaluation_score, _ = eval.evaluate_state(updated_node)
+    return updated_node
+
+def sigmoid(x, b):
+    """
+    standard sigmoid function
+    """
+    return 1 / (1 + np.exp(-b * x))
 
 def test():
     """

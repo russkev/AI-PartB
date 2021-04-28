@@ -19,7 +19,8 @@ class Node(GameState):
             enemy_transitions=None,
             matrix=None,
             q_value=0,
-            num_visits=0
+            num_visits=0,
+            evaluation_score=0
         ):
         """
         Initialise with a GameState.
@@ -57,12 +58,13 @@ class Node(GameState):
 
         self.q_value = q_value
         self.num_visits = num_visits
+        self.evaluation_score = evaluation_score
 
     def copy_node_state(self) -> "Node":
         return Node(super().copy())
 
 
-    def unvisited_children(self):
+    def unvisited_children(self, num_prior_visits=0):
         """
         Return a list of children who have not been the root of a rollout yet.
         """
@@ -71,9 +73,10 @@ class Node(GameState):
         for i in range(len(self.matrix)):
             for j in range(len(self.matrix[0])):
                 child: Node = self.matrix[i][j]
-                if child.num_visits == 0:
+                if child.num_visits == num_prior_visits:
                     unvisited.append(child)
         return unvisited
+
 
     def make_updated_node(self, friend_transition, enemy_transition, parent = None):
         """
@@ -113,3 +116,6 @@ class Node(GameState):
         Display the value / num_visits. This is nice and small so fits into a matrix.
         """
         return f"{self.q_value}/{self.num_visits}"
+
+    def __lt__(self, other):
+        return self.evaluation_score < other.evaluation_score
