@@ -14,7 +14,6 @@ class EvaluationFeatures:
         (-1,-1), (-1,2),
         (-2,0), (-2,1), (-2,2)
     }
-    # semi_outer_coords = 
     outer_coords = {
         (4, -4), (4, -3), (4, -2), (4, -1), (4, 0),  # top edge
         (0, -4), (1, -4), (2, -4), (3, -4),  # left top edge
@@ -37,6 +36,7 @@ class EvaluationFeatures:
         self.friend_has_invicible = 0
         self.friend_count_mid = 0
         self.friend_count_semi_mid = 0
+        self.friend_count_semi_outer = 0
         self.friend_count_outer = 0
 
         self.enemy_throws = 0
@@ -51,6 +51,7 @@ class EvaluationFeatures:
         self.enemy_has_invicible = 0
         self.enemy_count_mid = 0
         self.enemy_count_semi_mid = 0
+        self.enemy_count_semi_outer = 0
         self.enemy_count_outer = 0
 
     def calculate_features(self, game_state):
@@ -71,11 +72,11 @@ class EvaluationFeatures:
         # locations
         self.friend_has_stack = self.__has_stack(game_state, True)
         self.friend_dist_to_nearest_kill, self.friend_dist_to_all_kills = self.__nearest_kill(game_state, True)
-        self.friend_count_mid, self.friend_count_semi_mid, self.friend_count_outer = self.__count_by_coords(game_state, True)
+        self.friend_count_mid, self.friend_count_semi_mid, self.friend_count_semi_outer, self.friend_count_outer = self.__count_by_coords(game_state, True)
         
         self.enemy_has_stack = self.__has_stack(game_state, False)
         self.enemy_dist_to_nearest_kill, self.enemy_dist_to_all_kills = self.__nearest_kill(game_state, False)
-        self.enemy_count_mid, self.enemy_count_semi_mid, self.enemy_count_outer = self.__count_by_coords(game_state, False)
+        self.enemy_count_mid, self.enemy_count_semi_mid, self.enemy_count_semi_outer, self.enemy_count_outer = self.__count_by_coords(game_state, False)
     
         # resources
         self.friend_has_invicible, self.enemy_has_invicible = self.__has_invincible(game_state, True)
@@ -214,7 +215,7 @@ class EvaluationFeatures:
     def __count_by_coords(self, game_state, is_friend):
         reference = game_state.friends if is_friend else game_state.enemies
 
-        mids, semi_mids, outers = 0, 0, 0
+        mids, semi_mids, semi_out, outers = 0, 0, 0, 0
 
         for loc in reference:
             if loc in EvaluationFeatures.middle_coords:
@@ -223,5 +224,7 @@ class EvaluationFeatures:
                 semi_mids += 1
             elif loc in EvaluationFeatures.outer_coords:
                 outers += 1
+            else:
+                semi_out += 1
 
-        return mids, semi_mids, outers
+        return mids, semi_mids, semi_out, outers
