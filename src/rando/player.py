@@ -1,5 +1,6 @@
 from random import randrange
 from state.game_state import GameState
+from strategy.evaluation_features import EvaluationFeatures
 
 class Player:
 
@@ -13,6 +14,7 @@ class Player:
         as Lower).
         """
         self.game_state = GameState(is_upper=(player == "upper"), turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={})
+        self.evaluation_features = EvaluationFeatures()
     
     def action(self):
         """
@@ -33,5 +35,11 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state.update(player_action, opponent_action)
+        
+        self.evaluation_features.calculate_features(self.game_state)
+
+        self.evaluation_features.to_vector()
+
+
 
 

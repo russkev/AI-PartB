@@ -5,7 +5,6 @@ from state.board import Board
 from state.location import distance
 from state.token import defeat_token
 
-
 class GameState:
 
     MAX_THROWS = 9
@@ -129,7 +128,7 @@ class GameState:
         """ calculates all throw transitions for a side."""
         transitions = []
         throw_count = self.friend_throws if is_friend else self.enemy_throws
-        if throw_count >= GameState.MAX_THROWS: return transitions # no move throw moves are allowed
+        if throw_count >= GameState.MAX_THROWS: return transitions # no more throw moves are allowed
         
         upper = (self.is_upper and is_friend) or ((not self.is_upper) and (not is_friend))
         for loc in GameState.board.get_throw_options(upper, throw_count):
