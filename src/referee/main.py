@@ -45,8 +45,8 @@ def main():
         result = play(
             [p1, p2],
             delay=options.delay,
-            print_state=(options.verbosity > 1),
-            use_debugboard=(options.verbosity > 2),
+            print_state=False, #(options.verbosity > 1),
+            use_debugboard=False, #(options.verbosity > 2),
             use_colour=options.use_colour,
             use_unicode=options.use_unicode,
             log_filename=options.logfile,

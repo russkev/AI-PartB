@@ -7,6 +7,8 @@ Kevin Russell 1084088
 """
 
 import csv
+import random
+import time
 from state.game_state import GameState
 from strategy.minimax import minimax_paranoid_reduction
 from strategy.evaluation_features import EvaluationFeatures
@@ -26,13 +28,18 @@ class Player:
         
         self.game_state = GameState(is_upper=(player == "upper"))
         self.evaluation_features = EvaluationFeatures()
-
+        self.out_file = 'game_logs/' + str(int(time.time())) + '.csv'
+        self.explore_rate = 0.25
 
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
+        
+        if random.random() < self.explore_rate:
+            transitions = self.game_state.next_transitions_for_side(True)
+            return transitions[random.randrange(len(transitions))]
 
         return minimax_paranoid_reduction(self.game_state)
         
@@ -47,9 +54,8 @@ class Player:
         self.game_state.update(player_action, opponent_action)
 
         self.evaluation_features.calculate_features(self.game_state)
-        self.evaluation_features.to_vector()
 
-        with open('/Users/dpeel/Desktop/game_data/g1.csv', 'a') as f:
+        with open(self.out_file, 'a') as f:
             writer = csv.writer(f)
             writer.writerow(self.evaluation_features.to_vector())
 

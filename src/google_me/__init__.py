@@ -10,4 +10,4 @@ Kevin Russell 1084088
 """
 Import the player to use as the main strategy for the assignment
 """
-from rando.player import Player
+from dav_greedy.player import Player

@@ -7,8 +7,9 @@ Kevin Russell 1084088
 """
 
 import sys, subprocess
+import csv
 
-DEFAULT_ITERATIONS = 1
+DEFAULT_ITERATIONS = 5
 
 def main():
 
@@ -27,6 +28,8 @@ def main():
     num_upper_wins = 0
     num_draws = 0
 
+    game_outcome = 0.5
+
     for i in range(iterations):
         game_result = subprocess.run(
             ["python3", "-m", "referee", upper, lower, "-v" "0"],
@@ -36,13 +39,22 @@ def main():
 
         result = game_result.stdout[2:-1]
         winning_algorithm = ""
+        discard_range = result.find('*') + 2
+        result = result[discard_range:]
         if result == "winner: upper":
             winning_algorithm = upper
             num_upper_wins += 1
+            game_outcome = 1
         elif result == "winner: lower":
             winning_algorithm = lower
+            game_outcome = 0
         else:
             num_draws += 1
+        
+        with open('game_logs/game_outcomes.csv', 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow([game_outcome])
+
         print("Game: {}, result: {}, {}".format(i, result, winning_algorithm))
     
     upper_win_ratio = num_upper_wins / iterations
