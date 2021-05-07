@@ -1,6 +1,6 @@
 import numpy as np
 from state.game_state import GameState
-from state.token import defeats
+from state.token import defeats, defeat_token
 from state.location import distance
 
 
@@ -82,9 +82,9 @@ class EvaluationFeatures:
         self.friend_has_invicible, self.enemy_has_invicible = self.__has_invincible(game_state, True)
 
     def to_vector(self):
-        result = np.empty(len(self.__dict__), dtype=int)
+        # result = np.empty(len(self.__dict__), dtype=int)
+        result = [0] * len(self.__dict__)
         for i, key in enumerate(self.__dict__):
-            print(i, key, self.__dict__[key])
             result[i] = self.__dict__[key]
         return result
 
@@ -156,29 +156,14 @@ class EvaluationFeatures:
 
         f_types = set([t for list_t in reference.values() for t in list_t])
         e_types = set([t for list_t in other_reference.values() for t in list_t])
-
-        f_has_invincible = True
-        e_has_invincible = True
-
-        if len(f_types) == 3: e_has_invincible = False
-        if len(e_types) == 3: f_has_invincible = False
         
-        if f_has_invincible:  # have not yet found a way to show f is not invincible
-            for f_type in f_types:
-                for e_type in e_types:
-                    if e_type != f_type: # not the same type of token
-                        if defeats(e_type, f_type):
-                            f_has_invincible = False
+        f_defeats = set([defeat_token(t) for t in f_types])
+        e_defeats = set([defeat_token(t) for t in e_types])
 
-        if e_has_invincible:  # have not yet found a way to show e is not invincible
-            for e_type in e_types:
-                for f_type in f_types:
-                    if f_type != e_type: # not the same type of token
-                        if defeats(f_type, e_type):
-                            e_has_invincible = False
+        f_remain = f_types - e_defeats
+        e_remain = e_types - f_defeats
 
-
-        return f_has_invincible, e_has_invincible
+        return (len(f_remain) > 0), (len(e_remain) > 0)
 
     def __has_stack(self, game_state, is_friend):
         reference = game_state.friends if is_friend else game_state.enemies

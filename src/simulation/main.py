@@ -8,7 +8,7 @@ Kevin Russell 1084088
 
 import sys, subprocess
 
-DEFAULT_ITERATIONS = 10
+DEFAULT_ITERATIONS = 1
 
 def main():
 
@@ -33,6 +33,7 @@ def main():
             capture_output = True,
             encoding = "utf-8"
             )
+
         result = game_result.stdout[2:-1]
         winning_algorithm = ""
         if result == "winner: upper":

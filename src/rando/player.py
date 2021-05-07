@@ -1,6 +1,11 @@
 from random import randrange
 from state.game_state import GameState
 from strategy.evaluation_features import EvaluationFeatures
+import numpy as np
+
+import csv   
+
+
 
 class Player:
 
@@ -37,8 +42,12 @@ class Player:
         self.game_state.update(player_action, opponent_action)
         
         self.evaluation_features.calculate_features(self.game_state)
-
         self.evaluation_features.to_vector()
+
+        with open('/Users/dpeel/Desktop/game_data/g1.csv', 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(self.evaluation_features.to_vector())
+
 
 
 
