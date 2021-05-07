@@ -1,5 +1,15 @@
-from random import randrange
+"""
+COMP30024 Artificial Intelligence
+Semester 1, 2021
+Project Part B
+David Peel 964682
+Kevin Russell 1084088
+"""
+
+import csv
 from state.game_state import GameState
+from strategy.minimax import minimax_paranoid_reduction
+from strategy.evaluation_features import EvaluationFeatures
 
 
 class Player:
@@ -13,17 +23,19 @@ class Player:
         play as Upper), or the string "lower" (if the instance will play
         as Lower).
         """
-        self.game_state = GameState(is_upper=(player == "upper"), turn=0, friend_throws=0, enemy_throws=0, friends={}, enemies={})
-    
+        
+        self.game_state = GameState(is_upper=(player == "upper"))
+        self.evaluation_features = EvaluationFeatures()
+
+
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
 
-        transitions = self.game_state.next_transitions_for_side(True)
-        return transitions[randrange(len(transitions))]
-    
+        return minimax_paranoid_reduction(self.game_state)
+        
     def update(self, opponent_action, player_action):
         """
         Called at the end of each turn to inform this player of both
@@ -33,8 +45,13 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state.update(player_action, opponent_action)
-        
 
+        self.evaluation_features.calculate_features(self.game_state)
+        self.evaluation_features.to_vector()
+
+        with open('/Users/dpeel/Desktop/game_data/g1.csv', 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(self.evaluation_features.to_vector())
 
 
 
