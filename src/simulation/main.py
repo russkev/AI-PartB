@@ -9,7 +9,7 @@ Kevin Russell 1084088
 import sys, subprocess
 import csv
 
-DEFAULT_ITERATIONS = 5
+DEFAULT_ITERATIONS = 30
 
 def main():
 
@@ -50,6 +50,7 @@ def main():
             game_outcome = 0
         else:
             num_draws += 1
+            game_outcome = 0.5
         
         with open('game_logs/game_outcomes.csv', 'a') as f:
                 writer = csv.writer(f)

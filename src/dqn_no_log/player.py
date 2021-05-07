@@ -6,9 +6,13 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
+import csv
 import random
+import time
 from state.game_state import GameState
 from strategy.minimax import minimax_paranoid_reduction
+from strategy.evaluation_features import EvaluationFeatures
+
 
 class Player:
 
@@ -23,6 +27,8 @@ class Player:
         """
         
         self.game_state = GameState(is_upper=(player == "upper"))
+        self.evaluation_features = EvaluationFeatures()
+        self.explore_rate = 0.10
 
     def action(self):
         """
@@ -30,6 +36,10 @@ class Player:
         of the game, select an action to play this turn.
         """
         
+        if random.random() < self.explore_rate:
+            transitions = self.game_state.next_transitions_for_side(True)
+            return transitions[random.randrange(len(transitions))]
+
         return minimax_paranoid_reduction(self.game_state)
         
     def update(self, opponent_action, player_action):
@@ -42,7 +52,6 @@ class Player:
         """
         self.game_state.update(player_action, opponent_action)
 
-    
 
 
 
