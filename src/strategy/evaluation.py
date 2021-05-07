@@ -26,6 +26,10 @@ def evaluate_state(game_state: GameState, weights=None):
     num_killed_diff = num_opponents_killed_difference(game_state)
 
     # Number of useless pieces (fast)
+    num_friend_useless_old, num_enemy_useless_old = num_useless_old(game_state)
+    num_useless_diff_old = num_friend_useless_old - num_enemy_useless_old
+
+    # Number of useless pieces (fast)
     num_friend_useless, num_enemy_useless = num_useless(game_state)
     num_useless_diff = num_friend_useless - num_enemy_useless
 
@@ -49,24 +53,26 @@ def evaluate_state(game_state: GameState, weights=None):
         num_useless_diff,
         pieces_in_throw_range_diff,
         pieces_in_move_range_diff,
-        distance_from_safeline_diff
+        distance_from_safeline_diff,
+        num_useless_diff_old
     ]
 
     if weights is None:
         weights = [
             10,
             200,
-            -10,
+            -15,
             -5,
             -1,
-            -1
+            -1,
+            0
         ]
 
     final_scores = np.multiply(scores, weights)
 
     return np.dot(scores, weights), final_scores
 
-def greedy_choose(game_state: GameState):
+def greedy_choose(game_state: GameState, weights=None):
     friend_transitions = game_state.next_friend_transitions()
 
     queue = []
@@ -77,7 +83,7 @@ def greedy_choose(game_state: GameState):
         # new_state = game_state.update(friend_transition=friend_transition)
 
         # Find the evaluation score
-        eval_score, scores = evaluate_state(new_state)
+        eval_score, scores = evaluate_state(new_state, weights)
 
         # Add to queue. Use negative of score as first element of tuple since it is a min heap
         # A tuple of the individual scores are also included here for debugging purposes only
@@ -169,7 +175,7 @@ def num_opponents_killed_difference(game_state: GameState):
     return game_state.num_kills() - game_state.num_deaths()
 
 
-def num_useless(game_state: GameState):
+def num_useless_old(game_state: GameState):
     f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
 
     for tokens in game_state.friends.values():
@@ -187,8 +193,47 @@ def num_useless(game_state: GameState):
         else:
             f_scissors += len(tokens)
 
+    friend_useless = max(f_rocks - e_scissors, 0) + \
+        max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
+    enemy_useless = max(e_rocks - f_scissors, 0) + \
+        max(e_papers - f_rocks, 0) + max(e_scissors - f_papers, 0)
+
+    return friend_useless, enemy_useless
+
+def num_useless(game_state: GameState):
+    f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
+
+    for f_tokens in game_state.friends.values():
+        if f_tokens[0] == 'r':
+            f_rocks += len(f_tokens)
+        elif f_tokens[0] == 'p':
+            f_papers += len(f_tokens)
+        else:
+            f_scissors += len(f_tokens)
+    for e_tokens in game_state.enemies.values():
+        if e_tokens[0] == 'r':
+            e_rocks += len(e_tokens)
+        elif e_tokens[0] == 'p':
+            e_papers += len(e_tokens)
+        else:
+            e_scissors += len(e_tokens)
+
     friend_useless = max(f_rocks - e_scissors, 0) + max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
     enemy_useless = max(e_rocks - f_scissors, 0) + max(e_papers - f_rocks, 0) + max(e_scissors - f_papers, 0)
+
+    # Discount useless if all tokens is out and there are more friends than enemies
+    if game_state.enemy_throws == game_state.MAX_THROWS:
+        num_friends = game_state.num_friends()
+        num_enemies = game_state.num_enemies()
+        if num_friends > num_enemies:
+            friend_useless -= (num_friends - num_enemies)
+
+    # Discount useless if all tokens are out and there are more enemies than friends
+    if game_state.friend_throws == game_state.MAX_THROWS:
+        num_friends = game_state.num_friends()
+        num_enemies = game_state.num_enemies()
+        if num_enemies > num_friends:
+            enemy_useless -= (num_enemies - num_friends)
 
     return friend_useless, enemy_useless
 

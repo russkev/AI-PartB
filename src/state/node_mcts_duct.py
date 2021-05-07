@@ -115,7 +115,7 @@ class Node(GameState):
         """
         Display the value / num_visits. This is nice and small so fits into a matrix.
         """
-        return f"{self.q_value}/{self.num_visits}"
+        return f"{self.q_value}/{self.num_visits}/{self.evaluation_score}"
 
     def __lt__(self, other):
         return self.evaluation_score < other.evaluation_score

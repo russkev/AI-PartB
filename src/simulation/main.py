@@ -19,6 +19,8 @@ def main():
     
     upper = sys.argv[1]
     lower = sys.argv[2]
+    print(upper)
+    print(lower)
 
     if len(sys.argv) >= 4:
         iterations = int(sys.argv[3])
@@ -39,8 +41,8 @@ def main():
 
         result = game_result.stdout[2:-1]
         winning_algorithm = ""
-        discard_range = result.find('*') + 2
-        result = result[discard_range:]
+        # discard_range = result.find('*') + 2
+        # result = result[discard_range:]
         if result == "winner: upper":
             winning_algorithm = upper
             num_upper_wins += 1
@@ -56,7 +58,8 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow([game_outcome])
 
-        print("Game: {}, result: {}, {}".format(i, result, winning_algorithm))
+        # print("Game: {}, result: {}, {}".format(i, result, winning_algorithm))
+        print(f"Game: {i}, result: {result}, {winning_algorithm}")
     
     upper_win_ratio = num_upper_wins / iterations
     num_lower_wins = iterations - num_upper_wins - num_draws

@@ -25,7 +25,7 @@ from strategy.evaluation import goal_reward
 
 
 EXPLORATION_CONSTANT = 0.9 # np.sqrt(2)
-DEBUG_MODE = True
+DEBUG_MODE = False
 rollout_count = 0
 
 
@@ -37,7 +37,9 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6) -
     global rollout_count
 
     root.parent = None
-    while (root.num_visits < num_iterations):
+    t = time() + 1
+    while (time() < t):
+    # while (root.num_visits < num_iterations):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
         leaf = traverse(root)
         # Make random moves to terminal and record the win, lose or draw score
@@ -46,7 +48,7 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6) -
         # not include any nodes visited in rollout stage)
         back_propagate(leaf, simulation_result)
         # count += 1
-
+    print(f"NUM ITERATIONS: {root.num_visits}")
     if DEBUG_MODE:
         print_stats(root)
     # Out of all the children of the root node choose the best one (i.e. the most visited one)
@@ -70,7 +72,7 @@ def print_stats(root: Node):
         + f"move: {winning_node.action}")
     print(f"* CHILD STATS")
 
-    print(f"* Score  | Visits | Ratio  |          Move")
+    print(f"*  Score | Visits | Ratio  |          Move")
     print(f"* -------+--------+--------+-----------------------------------")
     for child in root.children:
         if child.num_visits > 0:

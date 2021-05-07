@@ -33,10 +33,6 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-<<<<<<< HEAD
-        # test()
-=======
->>>>>>> kev_game_state
         random_turns = 20
         if self.root.turn < random_turns:
             return greedy_choose(self.root)

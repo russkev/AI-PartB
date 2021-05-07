@@ -66,8 +66,6 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
     a maximum number of iterations must be used to provide a cutoff.
     """
-    # start_time = time()
-    # count = 0
     global rollout_count
 
     root.parent = None
@@ -88,6 +86,22 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     if DEBUG_MODE:
         print_stats(root, friend_winner, enemy_winner, winning_node)
     return friend_winner
+
+def simple_reduction(root: Node):
+    add_children(root, 1000)
+    scores = []
+    for i, _ in enumerate(root.matrix):
+        _, _, evaluation_score = sum_stats(root, i, is_row=True)
+        # scores.append(evaluation_score / len(root.matrix[0]))
+        scores.append(evaluation_score)
+
+    best_score = float("-inf")
+    best_index = 0
+    for i, curr_score in enumerate(scores):
+        if curr_score > best_score:
+            best_score = curr_score
+            best_index = i
+    return root.friend_transitions[best_index]
 
 def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
     """
@@ -453,9 +467,10 @@ def test():
     node = Node(state)
     node.friend_throws = 9
     node.enemy_throws = 9
-    node.is_friend=True
-    node.friends = [('r', (-3, 0)), ('s', (3,1))]
-    node.enemies = [('s', (-4, 0)), ('p', (-4,4))]
-    result = monte_carlo_tree_search(node, num_iterations=20)
+    # node.is_friend=True
+
+    node.enemies = {(-3, 0):['r'], (3,1):['s']}
+    node.friends = {(-4, 0):['s'], (-4,4):['p']}
+    result = simple_reduction(node)
     print(result.action)
     # print("Hello, World!")
