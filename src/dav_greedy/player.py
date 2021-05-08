@@ -29,6 +29,9 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
+        # if random.random() < 0.1:
+        #     transitions = self.game_state.next_transitions_for_side(True)
+        #     return transitions[random.randrange(len(transitions))]
         
         return minimax_paranoid_reduction(self.game_state)
         

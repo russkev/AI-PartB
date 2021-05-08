@@ -3,22 +3,17 @@ from math import exp
 from state import game_state
 from strategy.evaluation_features import EvaluationFeatures
 
-logistic_coefs = np.array([-1.53957804e+00, -3.95491844e-01, -6.25767776e-02,
-        -3.51937374e-01,  1.77480062e-03,  7.23573021e-02,
-        -3.80452455e+00,  6.41608187e-01,  2.56296897e-01,
-         6.53878786e-01,  4.09788485e-01,  1.17902930e-02,
-        -3.66490241e-01,  6.52283929e-02, -7.85988248e-01,
-         3.52134222e+00, -4.71307473e-01, -1.11872757e+00,
-        -1.50879422e+00, -6.08569972e-01])
 
-logistic_inter = 0.4032599
+model_coefs = np.array([1, 1, 0, 0, 0, 0, 10])
+
+# new_model_coefs = np.array([-1000, -100, 10, -1000, 10000, 100,100])
+new_model_coefs = np.array([-0.5204512950203091, 0.26902233485838695, 0.04382228393878375, -0.14619884216819995, 0.5410969366753706, -0.28169461333049095, -1.2154954982003174])
 
 e = EvaluationFeatures()
 
-def evaluate(game_state):
+def evaluate(game_state, use_new_model_fit=True):
     e.calculate_features(game_state)
 
-    raw = np.array(e.to_vector()).dot(logistic_coefs) + logistic_inter
+    if use_new_model_fit: return np.array(e.to_vector()).dot(new_model_coefs)
 
-    return 1 / (1 + exp(-raw))
-
+    return np.array(e.to_vector()).dot(new_model_coefs)

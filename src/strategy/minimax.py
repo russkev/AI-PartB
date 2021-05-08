@@ -14,8 +14,8 @@ def minimax_paranoid_reduction(game_state):
 
     return state_tree[max_layer(results)][0]
 
-def minimax_with_ml(game_state):
-    state_tree = build_state_tree_with_ml(game_state)
+def minimax_with_ml(game_state, use_new_model_fit=True):
+    state_tree = build_state_tree_with_ml(game_state, use_new_model_fit)
     results = []
     for f_move in state_tree:
         results.append((f_move[0], min_layer(f_move, f_move[1])))
@@ -57,7 +57,7 @@ def build_state_tree(game_state: GameState):
     return minimax_tree
 
 
-def build_state_tree_with_ml(game_state: GameState):
+def build_state_tree_with_ml(game_state: GameState, use_new_model_fit):
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
     minimax_tree = []
@@ -70,7 +70,7 @@ def build_state_tree_with_ml(game_state: GameState):
         for j, e_move in enumerate(e_moves):
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
-            eval_score = evaluate(game_state_ij)
+            eval_score = evaluate(game_state_ij, use_new_model_fit)
             minimax_tree[i][1].append((e_move,  eval_score))
 
     return minimax_tree

@@ -25,71 +25,39 @@ class EvaluationFeatures:
     }
     
     def __init__(self):
-        self.throw_diff = 0
         self.death_diff = 0
-
         self.nearest_kill_dist_diff = 0
-        self.total_kill_dist_diff = 0 
-        self.count_mid_diff = 0
+
+        self.has_mid_diff = 0
         self.stack_diff = 0
         self.invincible_diff = 0 
 
-        self.kill_from_throw_count_diff = 0
-        self.kill_from_non_throw_count_diff = 0
-
-        # self.friend_throws = 0
-        # self.friend_deaths = 0
-        # self.friend_has_kill_from_throw = 0  # bool
-        # self.friend_count_kill_from_throw = 0
-        # self.friend_has_kill_from_non_throw = 0  # bool
-        # self.friend_count_kill_from_non_throw = 0
-        # self.friend_has_stack = 0  # bool
-        # self.friend_dist_to_nearest_kill = 0
-        # self.friend_dist_to_all_kills = 0
-        # self.friend_has_invicible = 0
-        # self.friend_count_mid = 0
-        # self.friend_count_semi_mid = 0
-        # self.friend_count_semi_outer = 0
-        # self.friend_count_outer = 0
-
-        # self.enemy_throws = 0
-        # self.enemy_deaths = 0
-        # self.enemy_has_kill_from_throw = 0  # bool
-        # self.enemy_count_kill_from_throw = 0
-        # self.enemy_has_kill_from_non_throw = 0  # bool
-        # self.enemy_count_kill_from_non_throw = 0
-        # self.enemy_has_stack = 0  # bool
-        # self.enemy_dist_to_nearest_kill = 0
-        # self.enemy_dist_to_all_kills = 0
-        # self.enemy_has_invicible = 0
-        # self.enemy_count_mid = 0
-        # self.enemy_count_semi_mid = 0
-        # self.enemy_count_semi_outer = 0
-        # self.enemy_count_outer = 0
+        self.has_kill_from_throw_diff = 0
+        self.has_kill_from_non_throw_diff = 0
 
     def calculate_features(self, game_state):
         # battles
-        self.throw_diff = game_state.friend_throws - game_state.enemy_throws
+        # self.throw_diff = game_state.friend_throws - game_state.enemy_throws
         self.death_diff = self.__count_kills(game_state, True) - self.__count_kills(game_state, False)
 
-        self.count_mid_diff = self.__count_by_coords(game_state, True) - self.__count_by_coords(game_state, False)
+        f_min_kill, _ = self.__nearest_kill(game_state, True)
+        e_min_kill, _ = self.__nearest_kill(game_state, False)
+        self.nearest_kill_dist_diff = f_min_kill - e_min_kill
+
+        self.has_mid_diff = self.__count_by_coords(game_state, True) - self.__count_by_coords(game_state, False)
         self.stack_diff = self.__has_stack(game_state, True) - self.__has_stack(game_state, False)
         self.invincible_diff = self.__has_invincible(game_state, True)
-
-        f_min_kill, f_all_kills = self.__nearest_kill(game_state, True)
-        e_min_kill, e_all_kills = self.__nearest_kill(game_state, False)
-
-        self.nearest_kill_dist_diff = f_min_kill - e_min_kill
-        self.total_kill_dist_diff = f_all_kills - e_all_kills
-
-        _, f_kill_count_from_throw = self.__kill_from_throw_values(game_state, True)
-        _, f_kill_count_from_non_throw = self.__kill_from_non_throw_values(game_state, True)
         
-        _, e_kill_count_from_throw = self.__kill_from_throw_values(game_state, False)
-        _, e_kill_count_from_non_throw = self.__kill_from_non_throw_values(game_state, False)
+        f_has_kill_throw, _ = self.__kill_from_throw_values(game_state, True)
+        f_has_kill_non_throw, _ = self.__kill_from_non_throw_values(game_state, True)
+        e_has_kill_throw, _ = self.__kill_from_throw_values(game_state, False)
+        e_has_kill_non_throw, _ = self.__kill_from_non_throw_values(game_state, False)
 
-        self.kill_from_throw_count_diff = f_kill_count_from_throw - e_kill_count_from_throw
-        self.kill_from_non_throw_count_diff = f_kill_count_from_non_throw - e_kill_count_from_non_throw
+        self.has_kill_from_throw_diff = f_has_kill_throw - e_has_kill_throw
+        self.has_kill_from_non_throw_diff = f_has_kill_non_throw - e_has_kill_non_throw
+
+        # self.kill_from_throw_count_diff = f_kill_count_from_throw - e_kill_count_from_throw
+        # self.kill_from_non_throw_count_diff = f_kill_count_from_non_throw - e_kill_count_from_non_throw
 
         # self.friend_throws = game_state.friend_throws
         # self.friend_deaths = self.__count_kills(game_state, True)
@@ -120,7 +88,6 @@ class EvaluationFeatures:
         # result = np.empty(len(self.__dict__), dtype=int)
         result = [0] * len(self.__dict__)
         for i, key in enumerate(self.__dict__):
-            # print(key, self.__dict__[key])
             result[i] = self.__dict__[key]
         return result
 
@@ -229,7 +196,7 @@ class EvaluationFeatures:
             if instance_distance:
                 kill_distances.append(instance_distance)
         
-        if not kill_distances: return 0, 0
+        if not kill_distances: return 9, 9  # there no available kills
 
         return min(kill_distances), sum(kill_distances)
 
@@ -248,4 +215,6 @@ class EvaluationFeatures:
             else:
                 semi_out += 1
 
-        return mids + semi_mids
+        if (mids + semi_mids) > 1: return 1
+        
+        return 0

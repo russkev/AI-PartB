@@ -6,19 +6,18 @@ import pandas as pd
 def prepare_ml_data_set():
     game_files = sorted([f for f in listdir() if f[-4:] =='.csv' and f != 'game_outcomes.csv'])
 
-    header = ['throw_diff',
-        'death_diff',
+    header = ['death_diff',
         'nearest_kill_dist_diff',
-        'total_kill_dist_diff',
-        'count_mid_diff',
+        'has_mid_diff',
         'stack_diff',
         'invincible_diff',
-        'kill_from_throw_count_diff',
-        'kill_from_non_throw_count_diff',
+        'has_kill_from_throw_diff',
+        'has_kill_from_non_throw_diff',
         'score']
    
     outcomes = pd.read_csv('game_outcomes.csv',header=None)
     df = pd.DataFrame(columns=header)
+    discount_factor = 0.7
 
     for i, f in enumerate(game_files):
         f = game_files[0]
@@ -27,10 +26,10 @@ def prepare_ml_data_set():
         df_new.columns = header
 
         turn = list(range(len(df_new.score)))
-        death_diff = np.cumsum(df_new['death_diff'])
         outcome = outcomes[0][i]
+        factor = [discount_factor**t for t in turn[::-1]]
 
-        df_new['score'] = 50 * outcome - 5 * death_diff - turn[::-1]
+        df_new['score'] = ((100 * outcome) - (5 * df_new['death_diff']) - (turn[::-1])) * factor
 
         df = pd.concat([df, df_new], ignore_index=True)
     

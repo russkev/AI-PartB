@@ -9,7 +9,7 @@ Kevin Russell 1084088
 import sys, subprocess
 import csv
 
-DEFAULT_ITERATIONS = 3
+DEFAULT_ITERATIONS = 10
 
 def main():
 

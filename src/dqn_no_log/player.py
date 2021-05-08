@@ -10,7 +10,7 @@ import csv
 import random
 import time
 from state.game_state import GameState
-from strategy.minimax import minimax_paranoid_reduction
+from strategy.minimax import minimax_with_ml
 from strategy.evaluation_features import EvaluationFeatures
 
 
@@ -28,7 +28,7 @@ class Player:
         
         self.game_state = GameState(is_upper=(player == "upper"))
         self.evaluation_features = EvaluationFeatures()
-        self.explore_rate = 0.10
+        self.explore_rate = 0.05
 
     def action(self):
         """
@@ -40,7 +40,7 @@ class Player:
             transitions = self.game_state.next_transitions_for_side(True)
             return transitions[random.randrange(len(transitions))]
 
-        return minimax_paranoid_reduction(self.game_state)
+        return minimax_with_ml(self.game_state, use_new_model_fit=False)
         
     def update(self, opponent_action, player_action):
         """
@@ -52,7 +52,11 @@ class Player:
         """
         self.game_state.update(player_action, opponent_action)
 
+        self.evaluation_features.calculate_features(self.game_state)
+        # self.evaluation_features.to_vector()
 
+        for key in self.evaluation_features.__dict__:
+            print(key, self.evaluation_features.__dict__[key])
 
 
 
