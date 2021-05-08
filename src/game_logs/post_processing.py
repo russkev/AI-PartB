@@ -1,8 +1,9 @@
 from os import listdir
+import numpy as np
 import pandas as pd
 
 
-def prepare_ml_data_set(keep_draws = True):
+def prepare_ml_data_set():
     game_files = sorted([f for f in listdir() if f[-4:] =='.csv' and f != 'game_outcomes.csv'])
 
     header = ['throw_diff',
@@ -14,19 +15,23 @@ def prepare_ml_data_set(keep_draws = True):
         'invincible_diff',
         'kill_from_throw_count_diff',
         'kill_from_non_throw_count_diff',
-        'outcome']
+        'score']
    
     outcomes = pd.read_csv('game_outcomes.csv',header=None)
     df = pd.DataFrame(columns=header)
 
     for i, f in enumerate(game_files):
+        f = game_files[0]
         df_new = pd.read_csv(f, header=None)
-        df_new[len(header)-1] = outcomes[0][i]
+        df_new[len(header)-1] = 0
         df_new.columns = header
 
-        df = pd.concat([df, df_new], ignore_index=True)
+        turn = list(range(len(df_new.score)))
+        death_diff = np.cumsum(df_new['death_diff'])
+        outcome = outcomes[0][i]
 
-    if keep_draws:
-        return df
+        df_new['score'] = 50 * outcome - 5 * death_diff - turn[::-1]
+
+        df = pd.concat([df, df_new], ignore_index=True)
     
-    return df[df['outcome'] != 0.5]
+    return df
