@@ -15,9 +15,8 @@ def evaluate_state(game_state: GameState, weights=None):
     """
     takes a game state and estimates the future utility.
     """
-    # TODO Maybe an evaluation for the likelihood of opponent being invincible
 
-    # Distance to killable pieces score (fast)
+    # Distance to killable pieces score (fast) (TODO should be non-linear I think)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
     dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
     dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy

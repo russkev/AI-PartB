@@ -100,12 +100,6 @@ def simple_reduction(root: Node):
         _, _, evaluation_score = sum_stats(root, i, is_row=False)
         en_scores.append(evaluation_score)
 
-    # best_score = float("-inf")
-    # best_index = 0
-    # for i, curr_score in enumerate(fr_scores):
-    #     if curr_score > best_score:
-    #         best_score = curr_score
-    #         best_index = i
     return root.friend_transitions[0]
 
 def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
@@ -316,7 +310,7 @@ def get_best_child(node: Node):
     """
     Choose best child.
 
-    Select best friend move and bests enemy move seperately.
+    Select best friend move and best enemy move seperately.
 
     UCT uses the sum of all scores and visits for a particular row / column instead of just the one 
     for a particular move.
@@ -348,7 +342,7 @@ def get_best_child(node: Node):
 
     for j in col_indices:
         col_score_sum, col_visit_sum, _ = sum_stats(node, j, is_row=False)
-        uct = get_uct(node.num_visits, col_visit_sum, col_score_sum, EXPLORATION_CONSTANT)
+        uct = get_uct(node.num_visits, col_visit_sum, col_score_sum, -EXPLORATION_CONSTANT)
         if uct < best_uct_enemy:
             best_uct_enemy = uct
             best_col_index = j
@@ -478,7 +472,6 @@ def test_1():
     node.enemies = {(-4, 0):['s'], (-4,4):['p']}
     result = simple_reduction(node)
     print(result.action)
-    # print("Hello, World!")
 
 def test_2():
     """
@@ -517,4 +510,46 @@ def test_2():
     node.enemy_throws = 4
     node.friends = {(0, 3): ['r'], (1, -1): ['r'], (1, 1): ['p'], (3, 0): ['s'], (4, -2): ['p']}
     node.enemies = {(-3, 2): ['r'], (-2, -2): ['s'], (-2, -1): ['p'], (-1, 3): ['s']}
-    return simple_reduction(node)
+    simple_reduction(node)
+    monte_carlo_tree_search(node, num_iterations=300, playout_amount=3, node_cutoff=5)
+
+
+def test_3():
+    """
+*   throws:' `-.      ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+*       | upper |    |       |       |       |       |       |
+*       |   2   |    |  4,-4 |  4,-3 |  4,-2 |  4,-1 |  4, 0 |
+*    ,-' `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+*   | lower |    |       |       |  (R)  |       |       |       |
+*   |   2   |    |  3,-4 |  3,-3 |  3,-2 |  3,-1 |  3, 0 |  3, 1 |
+*    `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+*            |       |  (P)  |       |       |       |       |       |
+*            |  2,-4 |  2,-3 |  2,-2 |  2,-1 |  2, 0 |  2, 1 |  2, 2 |
+*         ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+*        |  >s<  |       |       |       |       |       |       |       |
+*        |  1,-4 |  1,-3 |  1,-2 |  1,-1 |  1, 0 |  1, 1 |  1, 2 |  1, 3 |
+*     ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+*    |       |       |       |       |       |       |       |       |       |
+*    |  0,-4 |  0,-3 |  0,-2 |  0,-1 |  0, 0 |  0, 1 |  0, 2 |  0, 3 |  0, 4 |
+*     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+*        |       |       |       |       |       |       |       |       |
+*        | -1,-3 | -1,-2 | -1,-1 | -1, 0 | -1, 1 | -1, 2 | -1, 3 | -1, 4 |
+*         `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+*            |       |       |       |       |       |       |       |
+*            | -2,-2 | -2,-1 | -2, 0 | -2, 1 | -2, 2 | -2, 3 | -2, 4 |
+*             `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+*                |       |       |       |       |       |       |
+*                | -3,-1 | -3, 0 | -3, 1 | -3, 2 | -3, 3 | -3, 4 |
+*                 `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'   key:' `-.
+*                    |  >r<  |       |       |       |       |       | (sym) |
+*                    | -4, 0 | -4, 1 | -4, 2 | -4, 3 | -4, 4 |       |  r, q |
+*                     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'         `-._,-'
+    """
+    state = GameState()
+    node = Node(state)
+    node.friend_throws = 2
+    node.enemy_throws = 2
+    node.friends = {(2, -3): ['p'], (3, -2): ['r']}
+    node.enemies = {(-4, 0): ['r'], (1, -4): ['s']}
+    simple_reduction(node)
+    monte_carlo_tree_search(node, num_iterations=300, playout_amount=3, node_cutoff=5)

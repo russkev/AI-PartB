@@ -11,7 +11,7 @@ from time import time
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
-from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, simple_reduction
+from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, simple_reduction
 from strategy.evaluation import greedy_choose
 
 class Player:
@@ -32,13 +32,13 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        greedy_turns = 0
+        greedy_turns = 14
         if self.root.turn < greedy_turns:
             return greedy_choose(self.root)
         else:
-            # return monte_carlo_tree_search(self.root, num_iterations=300, playout_amount=6, node_cutoff=10)
+            return monte_carlo_tree_search(self.root, num_iterations=300, playout_amount=6, node_cutoff=5)
             # return simple_reduction(self.root)
-            test_2()
+            # test_3()
 
     def update(self, opponent_action, player_action):
         """
