@@ -29,7 +29,7 @@ class Player:
         self.game_state = GameState(is_upper=(player == "upper"))
         self.evaluation_features = EvaluationFeatures()
         self.out_file = 'game_logs/' + str(int(time.time())) + '.csv'
-        self.explore_rate = 0.1
+        self.explore_rate = 1
 
     def action(self):
         """

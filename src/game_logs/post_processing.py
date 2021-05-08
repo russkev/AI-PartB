@@ -7,26 +7,15 @@ def prepare_ml_data_set(keep_draws = True):
 
     header = ['throw_diff',
         'death_diff',
-        'friend_has_kill_from_throw',
-        'friend_count_kill_from_throw',
-        'friend_has_kill_from_non_throw',
-        'friend_count_kill_from_non_throw',
-        'friend_has_stack',
-        'friend_dist_to_nearest_kill',
-        'friend_dist_to_all_kills',
-        'friend_has_invicible',
-        'friend_count_mid',
-        'enemy_has_kill_from_throw',
-        'enemy_count_kill_from_throw',
-        'enemy_has_kill_from_non_throw',
-        'enemy_count_kill_from_non_throw',
-        'enemy_has_stack',
-        'enemy_dist_to_nearest_kill',
-        'enemy_dist_to_all_kills',
-        'enemy_has_invicible',
-        'enemy_count_mid',
+        'nearest_kill_dist_diff',
+        'total_kill_dist_diff',
+        'count_mid_diff',
+        'stack_diff',
+        'invincible_diff',
+        'kill_from_throw_count_diff',
+        'kill_from_non_throw_count_diff',
         'outcome']
-
+   
     outcomes = pd.read_csv('game_outcomes.csv',header=None)
     df = pd.DataFrame(columns=header)
 

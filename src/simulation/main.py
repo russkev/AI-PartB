@@ -9,7 +9,7 @@ Kevin Russell 1084088
 import sys, subprocess
 import csv
 
-DEFAULT_ITERATIONS = 30
+DEFAULT_ITERATIONS = 3
 
 def main():
 
@@ -28,7 +28,7 @@ def main():
     num_upper_wins = 0
     num_draws = 0
 
-    game_outcome = 0.5
+    game_outcome = 0
 
     for i in range(iterations):
         game_result = subprocess.run(
@@ -47,10 +47,10 @@ def main():
             game_outcome = 1
         elif result == "winner: lower":
             winning_algorithm = lower
-            game_outcome = 0
+            game_outcome = -1
         else:
             num_draws += 1
-            game_outcome = 0.5
+            game_outcome = 0
         
         with open('game_logs/game_outcomes.csv', 'a') as f:
                 writer = csv.writer(f)
