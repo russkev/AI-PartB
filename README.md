@@ -90,3 +90,6 @@ The rest of the modules are different player types and can be made to play each 
   ]
 }
 ```
+
+# Dimefox considerations
+Enable Python with `enable-python3`

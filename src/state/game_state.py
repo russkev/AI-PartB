@@ -250,11 +250,15 @@ class GameState:
         type: (token, to_loc).
         """
         reference = self.friends if is_friend else self.enemies
-        return_pieces = []
+        return_pieces = {}
         for (_, from_loc, to_loc) in swing_slide_transitions:
             for piece_loc, tokens in reference.items():
                 if from_loc == piece_loc:
-                    return_pieces.append((tokens[0], to_loc))
+                    try:
+                        return_pieces[to_loc].add(tokens[0])
+                    except:
+                        return_pieces[to_loc] = {tokens[0]}
+                    # return_pieces.append((tokens[0], to_loc))
         return return_pieces
 
 

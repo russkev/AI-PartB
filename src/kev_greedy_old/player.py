@@ -32,11 +32,11 @@ class Player:
         return eval.greedy_choose(self.game_state, weights=[
             10,
             200,
-            0,
+            -15,
             -5,
             -1,
             -1,
-            -10
+            0
         ])
 
     def update(self, opponent_action, player_action):

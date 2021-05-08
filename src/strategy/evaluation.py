@@ -26,10 +26,6 @@ def evaluate_state(game_state: GameState, weights=None):
     num_killed_diff = num_opponents_killed_difference(game_state)
 
     # Number of useless pieces (fast)
-    num_friend_useless_old, num_enemy_useless_old = num_useless_old(game_state)
-    num_useless_diff_old = num_friend_useless_old - num_enemy_useless_old
-
-    # Number of useless pieces (fast)
     num_friend_useless, num_enemy_useless = num_useless(game_state)
     num_useless_diff = num_friend_useless - num_enemy_useless
 
@@ -47,6 +43,13 @@ def evaluate_state(game_state: GameState, weights=None):
     # Total distance of pieces from the throw line (slow)
     distance_from_safeline_diff = distance_from_safeline_difference(game_state)
 
+    # Invincible player
+    friend_is_invincible = __player_is_invincible(game_state, is_friend=True)
+    enemy_is_invincible = __player_is_invincible(game_state, is_friend=False)
+    invincible_diff = friend_is_invincible - enemy_is_invincible
+
+
+
     scores = [
         dist_to_killable_score_diff,
         num_killed_diff,
@@ -54,7 +57,7 @@ def evaluate_state(game_state: GameState, weights=None):
         pieces_in_throw_range_diff,
         pieces_in_move_range_diff,
         distance_from_safeline_diff,
-        num_useless_diff_old
+        invincible_diff
     ]
 
     if weights is None:
@@ -65,7 +68,7 @@ def evaluate_state(game_state: GameState, weights=None):
             -5,
             -1,
             -1,
-            0
+            500,
         ]
 
     final_scores = np.multiply(scores, weights)
@@ -122,20 +125,26 @@ def pieces_in_throw_range_difference(game_state: GameState):
 def pieces_in_throw_range(game_state: GameState, is_friend):
     if is_friend:
         opponent_row = GameState.farthest_r(game_state.enemy_throws, not game_state.is_upper)
+        opponent_throws = game_state.enemy_throws
         pieces = game_state.friends
         is_upper = game_state.is_upper
+
     else:
         opponent_row = GameState.farthest_r(game_state.friend_throws, game_state.is_upper)
+        opponent_throws = game_state.friend_throws
         pieces = game_state.enemies
         is_upper = not game_state.is_upper
     count = 0
 
-    if is_upper:
+    # if (is_friend and game_state.is_upper) or (not is_friend and not game_state.is_upper):
+    #     return 
+
+    if is_upper and (opponent_throws < game_state.MAX_THROWS):
         for (r, _) in pieces.keys():
             if r <= opponent_row:
                 count += 1
 
-    else:
+    elif (not is_upper) and (opponent_throws < game_state.MAX_THROWS):
         for (r, _) in pieces.keys():
             if r >= opponent_row:
                 count += 1
@@ -174,31 +183,6 @@ def distance_from_safeline(game_state: GameState, is_friend):
 def num_opponents_killed_difference(game_state: GameState):
     return game_state.num_kills() - game_state.num_deaths()
 
-
-def num_useless_old(game_state: GameState):
-    f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
-
-    for tokens in game_state.friends.values():
-        if tokens[0] == 'r':
-            f_rocks += len(tokens)
-        elif tokens[0] == 'p':
-            f_papers += len(tokens)
-        else:
-            f_scissors += len(tokens)
-    for tokens in game_state.enemies.values():
-        if tokens[0] == 'r':
-            f_rocks += len(tokens)
-        elif tokens[0] == 'p':
-            f_papers += len(tokens)
-        else:
-            f_scissors += len(tokens)
-
-    friend_useless = max(f_rocks - e_scissors, 0) + \
-        max(f_papers - e_rocks, 0) + max(f_scissors - e_papers, 0)
-    enemy_useless = max(e_rocks - f_scissors, 0) + \
-        max(e_papers - f_rocks, 0) + max(e_scissors - f_papers, 0)
-
-    return friend_useless, enemy_useless
 
 def num_useless(game_state: GameState):
     f_rocks = f_papers = f_scissors = e_rocks = e_papers = e_scissors = 0
@@ -290,11 +274,20 @@ def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
     reference = game_state.friends if is_friend else game_state.enemies
     count = 0
 
-    for curr_loc, curr_tokens in reference:
-        for (opponent_token, opponent_loc) in move_to_pieces:
-            if curr_loc == opponent_loc and curr_tokens[0] == defeat_token(opponent_token):
+    for curr_loc, curr_tokens in reference.items():
+        if curr_loc in move_to_pieces:
+            if defeat_by_token(curr_tokens[0]) in move_to_pieces[curr_loc]:
                 count += len(curr_tokens)
     return count
+
+    # for curr_loc, curr_tokens in reference.items():
+    #     if curr_loc in move_to_pieces:
+    #         opponent_token = 
+    #         curr_tokens[0] == defeat_token()
+    #     # for (opponent_token, opponent_loc) in move_to_pieces:
+    #     #     if curr_loc == opponent_loc and curr_tokens[0] == defeat_token(opponent_token):
+    #     #         count += len(curr_tokens)
+    # return count
 
 def goal_reward(game_state: GameState):
     """

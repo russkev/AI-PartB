@@ -88,20 +88,25 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     return friend_winner
 
 def simple_reduction(root: Node):
-    add_children(root, 1000)
-    scores = []
+    add_children(root, 6)
+    fr_scores = []
     for i, _ in enumerate(root.matrix):
         _, _, evaluation_score = sum_stats(root, i, is_row=True)
         # scores.append(evaluation_score / len(root.matrix[0]))
-        scores.append(evaluation_score)
+        fr_scores.append(evaluation_score)
 
-    best_score = float("-inf")
-    best_index = 0
-    for i, curr_score in enumerate(scores):
-        if curr_score > best_score:
-            best_score = curr_score
-            best_index = i
-    return root.friend_transitions[best_index]
+    en_scores = []
+    for i, _ in enumerate(root.matrix[0]):
+        _, _, evaluation_score = sum_stats(root, i, is_row=False)
+        en_scores.append(evaluation_score)
+
+    # best_score = float("-inf")
+    # best_index = 0
+    # for i, curr_score in enumerate(fr_scores):
+    #     if curr_score > best_score:
+    #         best_score = curr_score
+    #         best_index = i
+    return root.friend_transitions[0]
 
 def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
     """
@@ -459,7 +464,7 @@ def sigmoid(x, b):
     """
     return 1 / (1 + np.exp(-b * x))
 
-def test():
+def test_1():
     """
     Test function to investigate the MCTS code with a minimal possible actions.
     """
@@ -469,8 +474,47 @@ def test():
     node.enemy_throws = 9
     # node.is_friend=True
 
-    node.enemies = {(-3, 0):['r'], (3,1):['s']}
-    node.friends = {(-4, 0):['s'], (-4,4):['p']}
+    node.friends = {(-3, 0):['r'], (3,1):['s']}
+    node.enemies = {(-4, 0):['s'], (-4,4):['p']}
     result = simple_reduction(node)
     print(result.action)
     # print("Hello, World!")
+
+def test_2():
+    """
+    *   throws:' `-.      ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+    *       | upper |    |       |       |  (P)  |       |       |
+    *       |   5   |    |  4,-4 |  4,-3 |  4,-2 |  4,-1 |  4, 0 |
+    *    ,-' `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+    *   | lower |    |       |       |       |       |  (S)  |       |
+    *   |   4   |    |  3,-4 |  3,-3 |  3,-2 |  3,-1 |  3, 0 |  3, 1 |
+    *    `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+    *            |       |       |       |       |       |       |       |
+    *            |  2,-4 |  2,-3 |  2,-2 |  2,-1 |  2, 0 |  2, 1 |  2, 2 |
+    *         ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+    *        |       |       |       |  (R)  |       |  (P)  |       |       |
+    *        |  1,-4 |  1,-3 |  1,-2 |  1,-1 |  1, 0 |  1, 1 |  1, 2 |  1, 3 |
+    *     ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
+    *    |       |       |       |       |       |       |       |  (R)  |       |
+    *    |  0,-4 |  0,-3 |  0,-2 |  0,-1 |  0, 0 |  0, 1 |  0, 2 |  0, 3 |  0, 4 |
+    *     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+    *        |       |       |       |       |       |       |  >s<  |       |
+    *        | -1,-3 | -1,-2 | -1,-1 | -1, 0 | -1, 1 | -1, 2 | -1, 3 | -1, 4 |
+    *         `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+    *            |  >s<  |  >p<  |       |       |       |       |       |
+    *            | -2,-2 | -2,-1 | -2, 0 | -2, 1 | -2, 2 | -2, 3 | -2, 4 |
+    *             `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
+    *                |       |       |       |  >r<  |       |       |
+    *                | -3,-1 | -3, 0 | -3, 1 | -3, 2 | -3, 3 | -3, 4 |
+    *                 `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'   key:' `-.
+    *                    |       |       |       |       |       |       | (sym) |
+    *                    | -4, 0 | -4, 1 | -4, 2 | -4, 3 | -4, 4 |       |  r, q |
+    *                     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'         `-._,-'
+    """
+    state = GameState()
+    node = Node(state)
+    node.friend_throws = 5
+    node.enemy_throws = 4
+    node.friends = {(0, 3): ['r'], (1, -1): ['r'], (1, 1): ['p'], (3, 0): ['s'], (4, -2): ['p']}
+    node.enemies = {(-3, 2): ['r'], (-2, -2): ['s'], (-2, -1): ['p'], (-1, 3): ['s']}
+    return simple_reduction(node)
