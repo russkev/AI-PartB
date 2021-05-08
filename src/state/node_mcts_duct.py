@@ -7,7 +7,7 @@ Kevin Russell 1084088
 """
 
 from state.game_state import GameState
-
+from time import time
 
 class Node(GameState):
     def __init__(
@@ -59,6 +59,9 @@ class Node(GameState):
         self.q_value = q_value
         self.num_visits = num_visits
         self.evaluation_score = evaluation_score
+        self.time_consumed = 0
+        self.start_time = self.end_time = 0
+
 
     def copy_node_state(self) -> "Node":
         return Node(super().copy())
@@ -115,7 +118,8 @@ class Node(GameState):
         """
         Display the value / num_visits. This is nice and small so fits into a matrix.
         """
-        return f"{self.q_value}/{self.num_visits}/{self.evaluation_score}"
+        return f"{self.q_value}/{self.num_visits}"
+        # return f"{self.q_value}/{self.num_visits}/{self.evaluation_score}"
 
     def __lt__(self, other):
         return self.evaluation_score < other.evaluation_score

@@ -9,6 +9,7 @@ Kevin Russell 1084088
 from state.game_state import GameState
 import strategy.evaluation as eval
 import numpy as np
+from time import time
 
 
 class Player:
@@ -29,7 +30,10 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.kev
         """
-        return eval.greedy_choose(self.game_state)
+        # takes about 0.002s per turn
+        choice = eval.greedy_choose(self.game_state)
+
+        return choice
 
     def update(self, opponent_action, player_action):
         """

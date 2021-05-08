@@ -44,6 +44,7 @@ Lower wins: 17/35, with ratio: 0.49
 Draws: 13/35, with ratio: 0.37
 """
 
+from heapq import heappush, heappop
 from random import randrange
 from time import time
 from random import shuffle
@@ -52,7 +53,7 @@ from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
 import numpy as np
 from state.node_mcts_duct import Node
-EXPLORATION_CONSTANT = 0.4 # np.sqrt(2)
+EXPLORATION_CONSTANT = 0.8 # np.sqrt(2)
 DEBUG_MODE = False
 USE_PRIOR = False
 NUM_PRIOR_VISITS = 4
@@ -60,16 +61,31 @@ USE_PRUNING = True
 NUM_TO_KEEP = 5
 rollout_count = 0
 
+start_time = end_time = time_consumed = 0
+
+def start_timer():
+    global start_time
+    start_time = time()
+
+def end_timer():
+    global start_time, end_time, time_consumed
+    end_time = time()
+    time_consumed += end_time - start_time
+
+
 
 def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, node_cutoff=100) -> Node:
     """
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
     a maximum number of iterations must be used to provide a cutoff.
     """
-    global rollout_count
 
+
+    global rollout_count, start_time
+    start_time = time()
     root.parent = None
-    while (root.num_visits < num_iterations):
+    # while (root.num_visits < num_iterations):
+    while (time() < start_time + 0.5):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
         leaf = traverse(root, node_cutoff)
         # Make random moves to terminal and record the win, lose or draw score
@@ -85,6 +101,10 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
 
     if DEBUG_MODE:
         print_stats(root, friend_winner, enemy_winner, winning_node)
+
+    # print(f"TIME: {time_consumed}")
+    # print(f"ITERATIONS: {root.num_visits}")
+
     return friend_winner
 
 def simple_reduction(root: Node):
@@ -265,8 +285,8 @@ def choose_winner(node: Node):
     best_j = 0
     row_indices = list(range(len(node.matrix)))
     col_indices = list(range(len(node.matrix[0])))
-    shuffle(row_indices)
-    shuffle(col_indices)
+    # shuffle(row_indices)
+    # shuffle(col_indices)
 
     for i in row_indices:
         _, row_num_visits, _ = sum_stats(node, i, is_row=True)
@@ -294,7 +314,7 @@ def pick_unvisited_child(node: "Node") -> Node:
         unvisited = node.unvisited_children(NUM_PRIOR_VISITS)
     else:
         unvisited = node.unvisited_children()
-    shuffle(unvisited)
+    # shuffle(unvisited)
     num_unvisited = len(unvisited)
     if num_unvisited == 0:
         node.is_fully_expanded = True
@@ -325,7 +345,7 @@ def get_best_child(node: Node):
     best_uct_friend = float("-inf")
     best_row_index = 0
     row_indices = list(range(len(node.matrix)))
-    shuffle(row_indices)
+    # shuffle(row_indices)
 
     for i in row_indices:
         row_score_sum, row_visit_sum, _ = sum_stats(node, i, is_row=True)
@@ -338,7 +358,7 @@ def get_best_child(node: Node):
     best_uct_enemy = float("inf")
     best_col_index = 0
     col_indices = list(range(len(node.matrix[0])))
-    shuffle(col_indices)
+    # shuffle(col_indices)
 
     for j in col_indices:
         col_score_sum, col_visit_sum, _ = sum_stats(node, j, is_row=False)
@@ -370,27 +390,29 @@ def add_children(node: "Node", node_cutoff):
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
-        if USE_PRIOR:
-            node.matrix = [
-                [
-                    make_updated_node_with_prior(node, friend_transition, enemy_transition, NUM_PRIOR_VISITS)
-                        for enemy_transition in node.enemy_transitions
-                ]
-                for friend_transition in node.friend_transitions
-            ]
-            # If node is root, add the appropriate number of prior visits
+        update_with_pruned_matrix(node, node_cutoff)
+
+        # if USE_PRIOR:
+        #     node.matrix = [
+        #         [
+        #             make_updated_node_with_prior(node, friend_transition, enemy_transition, NUM_PRIOR_VISITS)
+        #                 for enemy_transition in node.enemy_transitions
+        #         ]
+        #         for friend_transition in node.friend_transitions
+        #     ]
+        #     # If node is root, add the appropriate number of prior visits
             
-            node.num_visits += len(node.matrix) * len(node.matrix[0])
-        else:
-            node.matrix = [
-                [
-                    make_updated_node_with_eval_score(node, friend_transition, enemy_transition)
-                        for enemy_transition in node.enemy_transitions
-                ] 
-                for friend_transition in node.friend_transitions
-            ]
-        if USE_PRUNING:
-            prune_children(node, node_cutoff)
+        #     node.num_visits += len(node.matrix) * len(node.matrix[0])
+        # else:
+        #     node.matrix = [
+        #         [
+        #             make_updated_node_with_eval_score(node, friend_transition, enemy_transition)
+        #                 for enemy_transition in node.enemy_transitions
+        #         ] 
+        #         for friend_transition in node.friend_transitions
+        #     ]
+        # if USE_PRUNING:
+        #     prune_children(node, node_cutoff)
 
 def prune_children(node: Node, node_cutoff):
     """
@@ -424,6 +446,48 @@ def prune_children(node: Node, node_cutoff):
     node.friend_transitions = new_fr_transitions
     node.enemy_transitions = new_en_transitions
     node.matrix = new_matrix
+
+
+def update_with_pruned_matrix(node: Node, node_cutoff):
+
+    en_scores = []
+    for j, en_transition in enumerate(node.enemy_transitions):
+        updated_node = node.copy_node_state()
+        updated_node.update(enemy_transition=en_transition)
+        score, _ = eval.evaluate_state(updated_node)
+        heappush(en_scores, (score, j))
+
+    fr_scores = []
+    for i, fr_transition in enumerate(node.friend_transitions):
+        updated_node = node.copy_node_state()
+        _, en_tr_index = en_scores[0]
+        updated_node.update(fr_transition, node.enemy_transitions[en_tr_index])
+        score, _ = eval.evaluate_state(updated_node)
+        heappush(fr_scores, (-score, i))
+
+
+    node.matrix = []
+    new_fr_transitions = []
+    new_en_transitions = []
+    for i in range(min(node_cutoff, len(node.friend_transitions))):
+        _, fr_tr_index = heappop(fr_scores)
+        new_fr_transitions.append(node.friend_transitions[fr_tr_index])
+
+        row = []
+        for j in range(min(node_cutoff, len(node.enemy_transitions))):
+            if i == 0:
+                _, en_tr_index = heappop(en_scores)
+                new_en_transitions.append(node.enemy_transitions[en_tr_index])
+            updated_node = node.copy_node_state()
+            updated_node.update(new_fr_transitions[i], new_en_transitions[j])
+            updated_node.parent=node
+            row.append(updated_node)
+        node.matrix.append(row)
+
+    node.friend_transitions = new_fr_transitions
+    node.enemy_transitions = new_en_transitions
+
+
 
 
 def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition, num_prior_visits):
@@ -510,8 +574,8 @@ def test_2():
     node.enemy_throws = 4
     node.friends = {(0, 3): ['r'], (1, -1): ['r'], (1, 1): ['p'], (3, 0): ['s'], (4, -2): ['p']}
     node.enemies = {(-3, 2): ['r'], (-2, -2): ['s'], (-2, -1): ['p'], (-1, 3): ['s']}
-    simple_reduction(node)
-    monte_carlo_tree_search(node, num_iterations=300, playout_amount=3, node_cutoff=5)
+    # simple_reduction(node)
+    monte_carlo_tree_search(node, num_iterations=10, playout_amount=3, node_cutoff=10)
 
 
 def test_3():

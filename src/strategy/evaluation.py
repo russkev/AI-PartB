@@ -16,6 +16,8 @@ def evaluate_state(game_state: GameState, weights=None):
     takes a game state and estimates the future utility.
     """
 
+    s = time()
+
     # Distance to killable pieces score (fast) (TODO should be non-linear I think)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
     dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
@@ -29,7 +31,7 @@ def evaluate_state(game_state: GameState, weights=None):
     num_useless_diff = num_friend_useless - num_enemy_useless
 
     # Throw range (medium)
-    pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
+    # pieces_in_throw_range_diff = pieces_in_throw_range_difference(game_state)
 
     # Number of pieces that could be killed with a single move of the opponent (slowest)
     friend_move_to_pieces = game_state.moves_to_pieces(
@@ -40,7 +42,7 @@ def evaluate_state(game_state: GameState, weights=None):
         game_state, friend_move_to_pieces, enemy_move_to_pieces)
 
     # Total distance of pieces from the throw line (slow)
-    distance_from_safeline_diff = distance_from_safeline_difference(game_state)
+    # distance_from_safeline_diff = distance_from_safeline_difference(game_state)
 
     # Invincible player
     friend_is_invincible = __player_is_invincible(game_state, is_friend=True)
@@ -54,9 +56,9 @@ def evaluate_state(game_state: GameState, weights=None):
         num_killed_diff,
         num_useless_diff,
         pieces_on_board_diff,
-        pieces_in_throw_range_diff,
+        0,
         pieces_in_move_range_diff,
-        distance_from_safeline_diff,
+        0,
         invincible_diff
     ]
 
@@ -66,15 +68,18 @@ def evaluate_state(game_state: GameState, weights=None):
             200,    # num_killed_diff
             -15,    # num_useless_diff
             -30,   # pieces_on_board_diff
-            -25,    # pieces_in_throw_range_diff
+            -25,    # pieces_in_throw_range_diff -- disabled
             -25,    # pieces_in_move_range_diff
-            -3,     # distance_from_safeline_diff
+            -3,     # distance_from_safeline_diff -- disabled
             500,    # invincible_diff
         ]
 
-    final_scores = np.multiply(scores, weights)
+    # final_scores = np.multiply(scores, weights)
 
-    return np.dot(scores, weights), final_scores
+
+    result = np.dot(scores, weights)
+
+    return result, []
 
 def greedy_choose(game_state: GameState, weights=None):
     friend_transitions = game_state.next_friend_transitions()
