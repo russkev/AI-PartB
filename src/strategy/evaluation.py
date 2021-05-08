@@ -48,12 +48,13 @@ def evaluate_state(game_state: GameState, weights=None):
     enemy_is_invincible = __player_is_invincible(game_state, is_friend=False)
     invincible_diff = friend_is_invincible - enemy_is_invincible
 
-
+    pieces_on_board_diff = game_state.num_friends() - game_state.num_enemies()
 
     scores = [
         dist_to_killable_score_diff,
         num_killed_diff,
         num_useless_diff,
+        pieces_on_board_diff,
         pieces_in_throw_range_diff,
         pieces_in_move_range_diff,
         distance_from_safeline_diff,
@@ -62,13 +63,14 @@ def evaluate_state(game_state: GameState, weights=None):
 
     if weights is None:
         weights = [
-            10,
-            200,
-            -15,
-            -5,
-            -1,
-            -1,
-            500,
+            10,     # dist_to_killable_score_diff
+            200,    # num_killed_diff
+            -15,    # num_useless_diff
+            -30,   # pieces_on_board_diff
+            -25,    # pieces_in_throw_range_diff
+            -25,    # pieces_in_move_range_diff
+            -3,     # distance_from_safeline_diff
+            500,    # invincible_diff
         ]
 
     final_scores = np.multiply(scores, weights)

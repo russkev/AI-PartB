@@ -30,13 +30,14 @@ class Player:
         of the game, select an action to play this turn.kev
         """
         return eval.greedy_choose(self.game_state, weights=[
-            10,
-            200,
-            -15,
-            -5,
-            -1,
-            -1,
-            0
+            10,     # dist_to_killable_score_diff
+            200,    # num_killed_diff
+            -15,    # num_useless_diff
+            -30,    # pieces_on_board_diff
+            -25,    # pieces_in_throw_range_diff
+            -25,    # pieces_in_move_range_diff
+            -3,     # distance_from_safeline_diff
+            500,    # invincible_diff
         ])
 
     def update(self, opponent_action, player_action):
