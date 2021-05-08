@@ -15,7 +15,7 @@ def minimax_paranoid_reduction(game_state):
     return state_tree[max_layer(results)][0]
 
 def minimax_with_ml(game_state):
-    state_tree = build_state_tree(game_state)
+    state_tree = build_state_tree_with_ml(game_state)
     results = []
     for f_move in state_tree:
         results.append((f_move[0], min_layer(f_move, f_move[1])))
