@@ -1,9 +1,16 @@
+from enum import Enum
 from copy import deepcopy
 from itertools import product
 from referee.game import Game
 from state.board import Board
 from state.location import distance
 from state.token import defeat_token
+
+
+class Phase(Enum):
+    EARLY = 1
+    MIDDLE = 2
+    LATE = 3
 
 class GameState:
 
@@ -15,6 +22,7 @@ class GameState:
     board = Board(slide_options)
 
     def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None):
+        self.phase = Phase.EARLY
         self.is_upper = is_upper
         self.turn = turn
         self.friend_throws = friend_throws
@@ -33,6 +41,11 @@ class GameState:
                 self.__battle(enemy_transition[2]) # in the case friend and enemy don't move to the same location
         elif enemy_transition is not None:
             self.__battle(enemy_transition[2])
+
+        if (friend_throws == 9) or (enemy_throws == 9):
+            self.phase = Phase.LATE
+        elif turn > 4:
+            self.phase = Phase.MIDDLE
 
     def copy(self) -> "GameState":
         return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
