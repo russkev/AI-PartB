@@ -85,14 +85,17 @@ def evaluate_state(game_state: GameState, weights=None):
 
 def greedy_choose(game_state: GameState, weights=None, is_friend=True):
     ref_transitions = game_state.next_friend_transitions() if is_friend else game_state.next_enemy_transitions()
- 
+    multiplier = -1 if is_friend else 1
 
 
     queue = []
     for ref_transition in ref_transitions:
         # New game state based on possible friend transition (enemy pieces stay the same)
         new_state = game_state.copy()
-        new_state.update(friend_transition=ref_transition)
+        if is_friend:
+            new_state.update(friend_transition=ref_transition)
+        else:
+            new_state.update(enemy_transition=ref_transition)
 
         # new_state = game_state.update(friend_transition=friend_transition)
 
@@ -101,7 +104,7 @@ def greedy_choose(game_state: GameState, weights=None, is_friend=True):
 
         # Add to queue. Use negative of score as first element of tuple since it is a min heap
         # A tuple of the individual scores are also included here for debugging purposes only
-        heappush(queue, (-1 * eval_score, ref_transition))
+        heappush(queue, (multiplier * eval_score, ref_transition))
 
     (best_score, best_move) = heappop(queue)
     possible_moves = [(best_score, best_move)]

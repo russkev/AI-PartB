@@ -102,8 +102,8 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     if DEBUG_MODE:
         print_stats(root, friend_winner, enemy_winner, winning_node)
 
-    # print(f"TIME: {time_consumed}")
-    # print(f"ITERATIONS: {root.num_visits}")
+    print(f"TIME: {time_consumed}")
+    print(f"ITERATIONS: {root.num_visits}")
 
     return friend_winner
 
@@ -450,6 +450,32 @@ def prune_children(node: Node, node_cutoff):
 
 def update_with_pruned_matrix(node: Node, node_cutoff):
 
+    s_fr_scores, s_en_scores = __get_prune_scores_slow(node)
+    fr_scores, en_scores = __get_prune_scores_quick(node)
+
+    node.matrix = []
+    new_fr_transitions = []
+    new_en_transitions = []
+    for i in range(min(node_cutoff, len(node.friend_transitions))):
+        _, fr_tr_index = heappop(fr_scores)
+        new_fr_transitions.append(node.friend_transitions[fr_tr_index])
+
+        row = []
+        for j in range(min(node_cutoff, len(node.enemy_transitions))):
+            if i == 0:
+                _, en_tr_index = heappop(en_scores)
+                new_en_transitions.append(node.enemy_transitions[en_tr_index])
+            updated_node = node.copy_node_state()
+            updated_node.update(new_fr_transitions[i], new_en_transitions[j])
+            updated_node.parent = node
+            row.append(updated_node)
+        node.matrix.append(row)
+
+    node.friend_transitions = new_fr_transitions
+    node.enemy_transitions = new_en_transitions
+
+
+def __get_prune_scores_quick(node: Node):
     en_scores = []
     for j, en_transition in enumerate(node.enemy_transitions):
         updated_node = node.copy_node_state()
@@ -465,64 +491,111 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
         score = eval.evaluate_state(updated_node)
         heappush(fr_scores, (-score, i))
 
+    return fr_scores, en_scores
 
-    # fr_scores = []
-    # for i, fr_transition in enumerate(node.friend_transitions):
-    #     updated_node = node.copy_node_state()
-    #     updated_node.update(friend_transition=fr_transition)
-    #     en_transition = eval.greedy_choose(node, is_friend=False)
-    #     updated_node.update(enemy_transition=en_transition)
-    #     score, = eval.evaluate_state(node)
-    #     heappush(fr_scores, (-score, i))
 
-    # en_scores = []
-    # for j, en_transition in enumerate(node.enemy_transitions):
-    #     updated_node = node.copy_node_state()
-    #     updated_node.update(enemy_transition=en_transition)
-    #     fr_transition = eval.greedy_choose(node, is_friend=True)
-    #     score, = eval.evaluate_state(node)
-    #     heappush(fr_scores, (score, j))
+def __get_prune_scores_slow(node: Node):
+    return (
+        __get_prune_scores_slow_for_side(node, is_friend=True),
+        __get_prune_scores_slow_for_side(node, is_friend=False)
+    )
 
-    # fr_scores = __prune_scores(node, is_friend=True)
-    # en_scores = __prune_scores(node, is_friend=False)
-    node.matrix = []
-    new_fr_transitions = []
-    new_en_transitions = []
-    for i in range(min(node_cutoff, len(node.friend_transitions))):
-        _, fr_tr_index = heappop(fr_scores)
-        new_fr_transitions.append(node.friend_transitions[fr_tr_index])
 
-        row = []
-        for j in range(min(node_cutoff, len(node.enemy_transitions))):
-            if i == 0:
-                _, en_tr_index = heappop(en_scores)
-                new_en_transitions.append(node.enemy_transitions[en_tr_index])
-            updated_node = node.copy_node_state()
-            updated_node.update(new_fr_transitions[i], new_en_transitions[j])
-            updated_node.parent=node
-            row.append(updated_node)
-        node.matrix.append(row)
-
-    node.friend_transitions = new_fr_transitions
-    node.enemy_transitions = new_en_transitions
-
-def __prune_scores(node: Node, is_friend):
+def __get_prune_scores_slow_for_side(node: Node, is_friend):
     ref_transitions = node.friend_transitions if is_friend else node.enemy_transitions
+    multiplier = -1 if is_friend else 1
     scores = []
     for i, ref_transition in enumerate(ref_transitions):
         updated_node = node.copy_node_state()
         if is_friend:
-            updated_node.update(friend_transition=ref_transition)
+            temp_node = node.copy_node_state()
+            temp_node.update(friend_transition=ref_transition)
+            opp_transition = eval.greedy_choose(node, is_friend=False)
+            updated_node.update(ref_transition, opp_transition)
         else:
-            updated_node.update(enemy_transition=ref_transition)
-        opp_transition = eval.greedy_choose(node, is_friend)
-        if is_friend:
-            updated_node.update(enemy_transition=opp_transition)
-        else:
-            updated_node.update(friend_transition=opp_transition)
-        score = eval.evaluate_state(node)
-        heappush(scores, (score, i))
+            temp_node = node.copy_node_state()
+            temp_node.update(enemy_transition=ref_transition)
+            opp_transition = eval.greedy_choose(node, is_friend=True)
+            updated_node.update(opp_transition, ref_transition)
+        score = eval.evaluate_state(updated_node)
+        heappush(scores, (multiplier * score, i))
     return scores
+
+# def update_with_pruned_matrix(node: Node, node_cutoff):
+
+#     en_scores = []
+#     for j, en_transition in enumerate(node.enemy_transitions):
+#         updated_node = node.copy_node_state()
+#         updated_node.update(enemy_transition=en_transition)
+#         score = eval.evaluate_state(updated_node)
+#         heappush(en_scores, (score, j))
+
+#     fr_scores = []
+#     for i, fr_transition in enumerate(node.friend_transitions):
+#         updated_node = node.copy_node_state()
+#         _, en_tr_index = en_scores[0]
+#         updated_node.update(fr_transition, node.enemy_transitions[en_tr_index])
+#         score = eval.evaluate_state(updated_node)
+#         heappush(fr_scores, (-score, i))
+
+
+#     # fr_scores = []
+#     # for i, fr_transition in enumerate(node.friend_transitions):
+#     #     updated_node = node.copy_node_state()
+#     #     updated_node.update(friend_transition=fr_transition)
+#     #     en_transition = eval.greedy_choose(node, is_friend=False)
+#     #     updated_node.update(enemy_transition=en_transition)
+#     #     score, = eval.evaluate_state(node)
+#     #     heappush(fr_scores, (-score, i))
+
+#     # en_scores = []
+#     # for j, en_transition in enumerate(node.enemy_transitions):
+#     #     updated_node = node.copy_node_state()
+#     #     updated_node.update(enemy_transition=en_transition)
+#     #     fr_transition = eval.greedy_choose(node, is_friend=True)
+#     #     score, = eval.evaluate_state(node)
+#     #     heappush(fr_scores, (score, j))
+
+#     # fr_scores = __prune_scores(node, is_friend=True)
+#     # en_scores = __prune_scores(node, is_friend=False)
+#     node.matrix = []
+#     new_fr_transitions = []
+#     new_en_transitions = []
+#     for i in range(min(node_cutoff, len(node.friend_transitions))):
+#         _, fr_tr_index = heappop(fr_scores)
+#         new_fr_transitions.append(node.friend_transitions[fr_tr_index])
+
+#         row = []
+#         for j in range(min(node_cutoff, len(node.enemy_transitions))):
+#             if i == 0:
+#                 _, en_tr_index = heappop(en_scores)
+#                 new_en_transitions.append(node.enemy_transitions[en_tr_index])
+#             updated_node = node.copy_node_state()
+#             updated_node.update(new_fr_transitions[i], new_en_transitions[j])
+#             updated_node.parent=node
+#             row.append(updated_node)
+#         node.matrix.append(row)
+
+#     node.friend_transitions = new_fr_transitions
+#     node.enemy_transitions = new_en_transitions
+
+# def __prune_scores(node: Node, is_friend):
+#     ref_transitions = node.friend_transitions if is_friend else node.enemy_transitions
+#     scores = []
+#     for i, ref_transition in enumerate(ref_transitions):
+#         updated_node = node.copy_node_state()
+#         if is_friend:
+#             updated_node.update(friend_transition=ref_transition)
+#         else:
+#             updated_node.update(enemy_transition=ref_transition)
+#         opp_transition = eval.greedy_choose(node, is_friend)
+#         if is_friend:
+#             updated_node.update(enemy_transition=opp_transition)
+#         else:
+#             updated_node.update(friend_transition=opp_transition)
+#         score = eval.evaluate_state(node)
+#         heappush(scores, (score, i))
+#     return scores
 
 
 
