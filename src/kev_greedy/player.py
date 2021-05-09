@@ -44,4 +44,4 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state.update(player_action, opponent_action)
-        
+        something = 5

@@ -20,7 +20,7 @@ class Node(GameState):
             matrix=None,
             q_value=0,
             num_visits=0,
-            evaluation_score=0
+            evaluation_score=0,
         ):
         """
         Initialise with a GameState.
@@ -61,6 +61,7 @@ class Node(GameState):
         self.evaluation_score = evaluation_score
         self.time_consumed = 0
         self.start_time = self.end_time = 0
+
 
 
     def copy_node_state(self) -> "Node":

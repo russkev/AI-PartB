@@ -4,23 +4,32 @@ from referee.game import Game
 from state.board import Board
 from state.location import distance
 from state.token import defeat_token
+import collections
+
+MAX_REPEATED_MOVES = 3
 
 class GameState:
 
     MAX_THROWS = 9
     MAX_TURNS = 360
     MAX_THROW_ENEMY_DISTANCE = 2
+    
+
 
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
-    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None):
+    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None, existing_moves=None):
         self.is_upper = is_upper
         self.turn = turn
         self.friend_throws = friend_throws
         self.enemy_throws = enemy_throws
         self.friends = {} if friends is None else friends
         self.enemies = {} if enemies is None else enemies
+        if existing_moves is None:
+            self.existing_moves = ExistingMoves()
+        else:
+            self.existing_moves = existing_moves
 
     def update(self, friend_transition=None, enemy_transition=None):
         """ applies moves from both players to the game state, progressing the game one turn."""
@@ -33,9 +42,12 @@ class GameState:
                 self.__battle(enemy_transition[2]) # in the case friend and enemy don't move to the same location
         elif enemy_transition is not None:
             self.__battle(enemy_transition[2])
+        self.existing_moves.add_game_state(self)
 
     def copy(self) -> "GameState":
-        return GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, self.friends.copy(), self.enemies.copy())
+        new_game_state = GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, 
+                    self.friends.copy(), self.enemies.copy(), self.existing_moves.copy())
+        return new_game_state
 
     def num_friends(self):
         return self.num_in_play_for_side(is_friend=True)
@@ -268,6 +280,9 @@ class GameState:
     def __repr__(self):
         return self.__str__()
 
+    def __hash__(self):
+        return (f"{self.friends.__str__()}|{self.enemies.__str__()}").__hash__()
+
 
 if __name__ == '__main__':
     g = GameState()
@@ -297,3 +312,45 @@ if __name__ == '__main__':
     g.next_transitions_for_side(True)
     # g.friend_throws = 9
     # g.next_transitions_for_side(True)
+
+
+class ExistingMoves:
+
+    def __init__(self, existing=None, limit_reached=False):
+        if existing is None:
+            self.existing = {}
+        else:
+            self.existing = existing
+        
+        # if counts is None:
+        #     self.counts = collections.deque()
+        # else:
+        #     self.counts = counts
+
+        self.limit_reached = limit_reached
+
+    def add_game_state(self, game_state: GameState):
+
+        hash = game_state.__hash__()
+        if hash in self.existing:
+            self.existing[hash] += 1
+            if self.existing[hash] >= MAX_REPEATED_MOVES:
+                self.limit_reached = True
+        else:
+            self.existing[hash] = 1
+        # state_data = (game_state.friends, game_state.enemies)
+
+        # try:
+        #     i = self.existing.index(state_data)
+        #     self.counts[i] += 1
+        #     if self.counts[i] >= MAX_REPEATED_MOVES:
+        #         self.limit_reached = True
+        # except ValueError:
+        #     self.existing.appendleft(state_data)
+        #     self.counts.appendleft(1)
+            
+    def copy(self):
+        return ExistingMoves(self.existing.copy(), self.limit_reached) 
+
+    def __repr__(self):
+        return str(self.existing)

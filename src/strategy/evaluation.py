@@ -16,7 +16,9 @@ def evaluate_state(game_state: GameState, weights=None):
     takes a game state and estimates the future utility.
     """
 
-    s = time()
+    goal = goal_reward(game_state)
+    if goal is not None:
+        return goal * 2000, []
 
     # Distance to killable pieces score (fast) (TODO should be non-linear I think)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
@@ -89,6 +91,7 @@ def greedy_choose(game_state: GameState, weights=None):
         # New game state based on possible friend transition (enemy pieces stay the same)
         new_state = game_state.copy()
         new_state.update(friend_transition=friend_transition)
+
         # new_state = game_state.update(friend_transition=friend_transition)
 
         # Find the evaluation score
@@ -295,6 +298,8 @@ def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
     #     #         count += len(curr_tokens)
     # return count
 
+existing_moves = set()
+
 def goal_reward(game_state: GameState):
     """
     Return False if goal state has not been reached
@@ -345,7 +350,8 @@ def goal_reward(game_state: GameState):
     #       for each player), occurs for a third time since the start of the game
     #       (not necessarily in succession): Declare draw
 
-    # NOT IMPLEMENTED
+    if game_state.existing_moves.limit_reached:
+        return 0
 
     # 5.    The players have had their 360th turn without a winner being declared:
     #       Declare a draw.
