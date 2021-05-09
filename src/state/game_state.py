@@ -42,9 +42,9 @@ class GameState:
         elif enemy_transition is not None:
             self.__battle(enemy_transition[2])
 
-        if (friend_throws == 9) or (enemy_throws == 9):
+        if (self.friend_throws == 9) or (self.enemy_throws == 9):
             self.phase = Phase.LATE
-        elif turn > 4:
+        elif self.turn > 4:
             self.phase = Phase.MIDDLE
 
     def copy(self) -> "GameState":
