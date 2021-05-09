@@ -466,6 +466,25 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
         heappush(fr_scores, (-score, i))
 
 
+    # fr_scores = []
+    # for i, fr_transition in enumerate(node.friend_transitions):
+    #     updated_node = node.copy_node_state()
+    #     updated_node.update(friend_transition=fr_transition)
+    #     en_transition = eval.greedy_choose(node, is_friend=False)
+    #     updated_node.update(enemy_transition=en_transition)
+    #     score, [] = eval.evaluate_state(node)
+    #     heappush(fr_scores, (-score, i))
+
+    # en_scores = []
+    # for j, en_transition in enumerate(node.enemy_transitions):
+    #     updated_node = node.copy_node_state()
+    #     updated_node.update(enemy_transition=en_transition)
+    #     fr_transition = eval.greedy_choose(node, is_friend=True)
+    #     score, [] = eval.evaluate_state(node)
+    #     heappush(fr_scores, (score, j))
+
+    # fr_scores = __prune_scores(node, is_friend=True)
+    # en_scores = __prune_scores(node, is_friend=False)
     node.matrix = []
     new_fr_transitions = []
     new_en_transitions = []
@@ -487,6 +506,23 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
     node.friend_transitions = new_fr_transitions
     node.enemy_transitions = new_en_transitions
 
+def __prune_scores(node: Node, is_friend):
+    ref_transitions = node.friend_transitions if is_friend else node.enemy_transitions
+    scores = []
+    for i, ref_transition in enumerate(ref_transitions):
+        updated_node = node.copy_node_state()
+        if is_friend:
+            updated_node.update(friend_transition=ref_transition)
+        else:
+            updated_node.update(enemy_transition=ref_transition)
+        opp_transition = eval.greedy_choose(node, is_friend)
+        if is_friend:
+            updated_node.update(enemy_transition=opp_transition)
+        else:
+            updated_node.update(friend_transition=opp_transition)
+        score, _ = eval.evaluate_state(node)
+        heappush(scores, (score, i))
+    return scores
 
 
 

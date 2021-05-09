@@ -1,3 +1,4 @@
+from enum import Enum
 from copy import deepcopy
 from itertools import product
 from referee.game import Game
@@ -7,6 +8,12 @@ from state.token import defeat_token
 import collections
 
 MAX_REPEATED_MOVES = 3
+
+
+class Phase(Enum):
+    EARLY = 1
+    MIDDLE = 2
+    LATE = 3
 
 class GameState:
 
@@ -20,6 +27,7 @@ class GameState:
     board = Board(slide_options)
 
     def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None, existing_moves=None):
+        self.phase = Phase.EARLY
         self.is_upper = is_upper
         self.turn = turn
         self.friend_throws = friend_throws
@@ -43,6 +51,11 @@ class GameState:
         elif enemy_transition is not None:
             self.__battle(enemy_transition[2])
         self.existing_moves.add_game_state(self)
+
+        if (self.friend_throws == 9) or (self.enemy_throws == 9):
+            self.phase = Phase.LATE
+        elif self.turn > 4:
+            self.phase = Phase.MIDDLE
 
     def copy(self) -> "GameState":
         new_game_state = GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, 
