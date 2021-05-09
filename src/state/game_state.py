@@ -20,13 +20,24 @@ class GameState:
     MAX_THROWS = 9
     MAX_TURNS = 360
     MAX_THROW_ENEMY_DISTANCE = 2
-    
+    MAX_THROW_ENEMY_DISTANCE_AGGRESSIVE = 0
 
+    distant_throw_options = {
+        4: ((4, -3), (4, -2), (4, -1)),
+        3: ((3, -3), (3, -0)),
+        2: ((2, -2), (2, 0)),
+        1: ((1, -2), (1, 1)),
+        0: ((0, -2), (0, 2)),
+        -1: ((-1, 1), (-1, 2)),
+        -2: ((-2, 0), (-2, 2)),
+        -3: ((-3, 0), (-3, 3)),
+        -4: ((-4, 1), (-4, 2), (-4, 3))
+    }
 
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
-    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None, existing_moves=None):
+    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None, existing_moves=None, pruning_is_aggressive=False):
         self.phase = Phase.EARLY
         self.is_upper = is_upper
         self.turn = turn
@@ -38,6 +49,7 @@ class GameState:
             self.existing_moves = ExistingMoves()
         else:
             self.existing_moves = existing_moves
+        self.pruning_is_aggressive = pruning_is_aggressive
 
     def update(self, friend_transition=None, enemy_transition=None):
         """ applies moves from both players to the game state, progressing the game one turn."""
@@ -59,7 +71,7 @@ class GameState:
 
     def copy(self) -> "GameState":
         new_game_state = GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, 
-                    self.friends.copy(), self.enemies.copy(), self.existing_moves.copy())
+                    self.friends.copy(), self.enemies.copy(), self.existing_moves.copy(), self.pruning_is_aggressive)
         return new_game_state
 
     def num_friends(self):
@@ -172,8 +184,12 @@ class GameState:
         units of a killable opponent are kept
 
         """
+
+
+
+
         # Enemies to the current throw side
-        throw_enemies = self.enemies if is_friend else self.friends
+        opponents = self.enemies if is_friend else self.friends
         pruned_throws = []
 
         # Set num tokens used
@@ -182,15 +198,34 @@ class GameState:
         else:
             num_tokens_used = self.enemy_throws
 
-        # Append throws to the farthest row if there are no opponents in range
         if (is_friend and self.is_upper) or (not is_friend and not self.is_upper):
-            # Upper player
-            pruned_throws += GameState.__append_throws_distant(
-                throws, num_tokens_used, throw_enemies, True)
+            is_upper = True
         else:
-            # Lower player
-            pruned_throws += GameState.__append_throws_distant(
-                throws, num_tokens_used, throw_enemies, False)
+            is_upper = False
+        farthest_r, nearest_opponent_r = GameState.farthest_rows(num_tokens_used, is_upper, opponents)
+
+        if self.pruning_is_aggressive:
+            max_throw_enemy_distance = GameState.MAX_THROW_ENEMY_DISTANCE_AGGRESSIVE
+        else:
+            max_throw_enemy_distance = GameState.MAX_THROW_ENEMY_DISTANCE
+
+        if (is_upper and nearest_opponent_r < farthest_r and nearest_opponent_r >= farthest_r - GameState.MAX_THROW_ENEMY_DISTANCE) \
+            or ((not is_upper) and nearest_opponent_r > farthest_r and nearest_opponent_r <= farthest_r + GameState.MAX_THROW_ENEMY_DISTANCE):
+            max_throw_enemy_distance = GameState.MAX_THROW_ENEMY_DISTANCE
+
+
+        pruned_throws += GameState.__append_throws_distant(
+            throws, farthest_r, nearest_opponent_r, is_upper, self.pruning_is_aggressive)
+
+        # # Append throws to the farthest row if there are no opponents in range
+        # if (is_friend and self.is_upper) or (not is_friend and not self.is_upper):
+        #     # Upper player
+        #     pruned_throws += GameState.__append_throws_distant(
+        #         throws, num_tokens_used, opponents, True, self.pruning_is_aggressive)
+        # else:
+        #     # Lower player
+        #     pruned_throws += GameState.__append_throws_distant(
+        #         throws, num_tokens_used, opponents, False, self.pruning_is_aggressive)
 
         # Append throws that are near opponents if opponent in range
         if len(pruned_throws) == 0:
@@ -198,8 +233,8 @@ class GameState:
             # MAX_THROW_ENEMY_DISTANCE of an enemy only.
             for throw in throws:
                 (_, throw_token, throw_loc) = throw
-                for enemy_loc, enemy_tokens, in throw_enemies.items():
-                    if (distance(throw_loc, enemy_loc) <= GameState.MAX_THROW_ENEMY_DISTANCE
+                for enemy_loc, enemy_tokens, in opponents.items():
+                    if (distance(throw_loc, enemy_loc) <= max_throw_enemy_distance
                             and enemy_tokens[0] == defeat_token(throw_token)):
                         pruned_throws.append(throw)
                         break
@@ -207,29 +242,52 @@ class GameState:
         return pruned_throws
 
     @staticmethod
-    def __append_throws_distant(throws, num_tokens_used, throw_enemies, is_upper):
+    def farthest_rows(num_tokens_used, is_upper, opponents):
+        farthest_r = GameState.farthest_r(num_tokens_used, is_upper)
+        nearest_throw_enemy_r = -4 if is_upper else 4
+
+        # Find row of nearest enemy row
+        for (r, _) in opponents.keys():
+            if (is_upper and r > nearest_throw_enemy_r) or (not is_upper and r < nearest_throw_enemy_r):
+                nearest_throw_enemy_r = r
+        
+        return farthest_r, nearest_throw_enemy_r
+
+
+    @staticmethod
+    def __append_throws_distant(throws, farthest_r, nearest_opponent_r, is_upper, is_aggressive=False):
         """
         Return a list of throws to the farthest reachable row only if no enemy is closer, otherwise
         return an empty list.
 
         """
 
-        farthest_r = GameState.farthest_r(num_tokens_used, is_upper)
-        nearest_throw_enemy_r = -4 if is_upper else 4
-        pruned_throws = []
+        # farthest_r = GameState.farthest_r(num_tokens_used, is_upper)
+        # nearest_throw_enemy_r = -4 if is_upper else 4
+        max_throw_enemy_distance = GameState.MAX_THROW_ENEMY_DISTANCE
 
-        # Find row of nearest enemy row
-        for (r, _) in throw_enemies.keys():
-            if (is_upper and r > nearest_throw_enemy_r) or (not is_upper and r < nearest_throw_enemy_r):
-                nearest_throw_enemy_r = r
+        # # Find row of nearest enemy row
+        # for (r, _) in throw_enemies.keys():
+        #     if (is_upper and r > nearest_throw_enemy_r) or (not is_upper and r < nearest_throw_enemy_r):
+        #         nearest_throw_enemy_r = r
 
         # Make pruned_throws all throws to the farthest reachable row only if the closest enemy
         # is further than that, otherwise make it empty
-        if abs(farthest_r - nearest_throw_enemy_r) > GameState.MAX_THROW_ENEMY_DISTANCE:
-            for throw in throws:
-                (_, _, (throw_r, _)) = throw
-                if throw_r == farthest_r:
-                    pruned_throws.append(throw)
+        # if abs(farthest_r - nearest_throw_enemy_r) > GameState.MAX_THROW_ENEMY_DISTANCE:
+        pruned_throws = []
+        if (is_upper and (nearest_opponent_r < farthest_r - max_throw_enemy_distance )) or \
+            ((not is_upper) and (nearest_opponent_r > farthest_r + max_throw_enemy_distance)):
+            if is_aggressive:
+                pruned_throws = [
+                    ("THROW", token, loc)
+                        for token in ['r','p','s']
+                        for loc in GameState.distant_throw_options[farthest_r]
+                    ]
+            else:
+                for throw in throws:
+                    (_, _, (throw_r, _)) = throw
+                    if throw_r == farthest_r:
+                        pruned_throws.append(throw)
         return pruned_throws
 
     def __battle(self, location):

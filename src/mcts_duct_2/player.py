@@ -15,6 +15,7 @@ from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, si
 from strategy.evaluation import greedy_choose
 import cProfile
 
+
 class Player:
 
     def __init__(self, player):
@@ -27,6 +28,7 @@ class Player:
         as Lower).
         """
         self.root = Node(GameState(is_upper=(player == "upper")))
+        self.root.pruning_is_aggressive = True
         self.time = self.end_time = self.time_consumed = 0
 
     def action(self):
@@ -34,28 +36,25 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        random_turns = 3
-        greedy_turns = 20
+        random_turns = 0
+        greedy_turns = 8
         # random_turns = 0
         # greedy_turns = 0
 
         self.start_timer()
 
+        # if self.root.turn < random_turns:
+        #     result = biased_random_move(self.root, is_friend=True)
+        # elif self.root.turn < greedy_turns or self.time_consumed > 28:
+        #     result = greedy_choose(self.root)
+        # else:
+        #     result = monte_carlo_tree_search(self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5)
 
-
-        if self.root.turn < random_turns:
-            result = biased_random_move(self.root, is_friend=True)
-        elif self.root.turn < greedy_turns or self.time_consumed > 29:
+        if self.root.turn < greedy_turns:
             result = greedy_choose(self.root)
         else:
-
-            result = monte_carlo_tree_search(self.root, num_iterations=3000, playout_amount=4, node_cutoff=5)
-            # return simple_reduction(self.root)
-            # test_2()
-
-            # cProfile.runctx('test_2()', globals(), locals())
-            # something = 5
-
+            result = monte_carlo_tree_search(
+                self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5, verbosity=0)
 
         self.end_timer()
 
@@ -70,11 +69,11 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
 
-        self.root = self.root.make_updated_node(player_action,opponent_action)
+        self.root = self.root.make_updated_node(player_action, opponent_action)
+        asda = 4
 
     def start_timer(self):
         self.start_time = time()
-
 
     def end_timer(self):
         self.end_time = time()

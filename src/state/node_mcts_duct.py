@@ -35,6 +35,8 @@ class Node(GameState):
             turn = other.turn,
             friend_throws = other.friend_throws,
             enemy_throws = other.enemy_throws,
+            existing_moves = other.existing_moves,
+            pruning_is_aggressive = other.pruning_is_aggressive
         )
 
 

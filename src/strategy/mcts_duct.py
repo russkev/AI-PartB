@@ -74,7 +74,7 @@ def end_timer():
 
 
 
-def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, node_cutoff=100) -> Node:
+def monte_carlo_tree_search(root: Node, playout_amount=6, node_cutoff=100, num_iterations=float("inf"), turn_time=float("inf"), verbosity=0) -> Node:
     """
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
     a maximum number of iterations must be used to provide a cutoff.
@@ -85,7 +85,7 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     start_time = time()
     root.parent = None
     # while (root.num_visits < num_iterations):
-    while (time() < start_time + 0.5):
+    while (time() < start_time + turn_time and root.num_visits < num_iterations):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
         leaf = traverse(root, node_cutoff)
         # Make random moves to terminal and record the win, lose or draw score
@@ -102,8 +102,12 @@ def monte_carlo_tree_search(root: Node, num_iterations=1000, playout_amount=6, n
     if DEBUG_MODE:
         print_stats(root, friend_winner, enemy_winner, winning_node)
 
-    print(f"TIME: {time_consumed}")
-    print(f"ITERATIONS: {root.num_visits}")
+    if (verbosity >= 1):
+        print(f"TIME: {time_consumed}")
+        print(f"ITERATIONS: {root.num_visits}")
+    
+    if (verbosity >= 2):
+        print_stats(root, friend_winner, enemy_winner, winning_node)
 
     return friend_winner
 
@@ -450,8 +454,8 @@ def prune_children(node: Node, node_cutoff):
 
 def update_with_pruned_matrix(node: Node, node_cutoff):
 
-    s_fr_scores, s_en_scores = __get_prune_scores_slow(node)
-    fr_scores, en_scores = __get_prune_scores_quick(node)
+    fr_scores, en_scores = __get_prune_scores_slow(node)
+    # fr_scores, en_scores = __get_prune_scores_quick(node)
 
     node.matrix = []
     new_fr_transitions = []
