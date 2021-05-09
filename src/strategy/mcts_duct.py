@@ -206,7 +206,7 @@ def evaluate_state_ternary(game_state: GameState):
         -1  if a lose is likely
     """
 
-    final_score, _ = eval.evaluate_state(game_state)
+    final_score = eval.evaluate_state(game_state)
     if final_score > 0:
         return 1
     elif final_score == 0:
@@ -454,7 +454,7 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
     for j, en_transition in enumerate(node.enemy_transitions):
         updated_node = node.copy_node_state()
         updated_node.update(enemy_transition=en_transition)
-        score, _ = eval.evaluate_state(updated_node)
+        score = eval.evaluate_state(updated_node)
         heappush(en_scores, (score, j))
 
     fr_scores = []
@@ -462,7 +462,7 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
         updated_node = node.copy_node_state()
         _, en_tr_index = en_scores[0]
         updated_node.update(fr_transition, node.enemy_transitions[en_tr_index])
-        score, _ = eval.evaluate_state(updated_node)
+        score = eval.evaluate_state(updated_node)
         heappush(fr_scores, (-score, i))
 
 
@@ -472,7 +472,7 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
     #     updated_node.update(friend_transition=fr_transition)
     #     en_transition = eval.greedy_choose(node, is_friend=False)
     #     updated_node.update(enemy_transition=en_transition)
-    #     score, [] = eval.evaluate_state(node)
+    #     score, = eval.evaluate_state(node)
     #     heappush(fr_scores, (-score, i))
 
     # en_scores = []
@@ -480,7 +480,7 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
     #     updated_node = node.copy_node_state()
     #     updated_node.update(enemy_transition=en_transition)
     #     fr_transition = eval.greedy_choose(node, is_friend=True)
-    #     score, [] = eval.evaluate_state(node)
+    #     score, = eval.evaluate_state(node)
     #     heappush(fr_scores, (score, j))
 
     # fr_scores = __prune_scores(node, is_friend=True)
@@ -520,7 +520,7 @@ def __prune_scores(node: Node, is_friend):
             updated_node.update(enemy_transition=opp_transition)
         else:
             updated_node.update(friend_transition=opp_transition)
-        score, _ = eval.evaluate_state(node)
+        score = eval.evaluate_state(node)
         heappush(scores, (score, i))
     return scores
 
@@ -534,7 +534,7 @@ def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition
     updated_node = node.copy_node_state()
     updated_node.update(friend_transition, enemy_transition)
     updated_node.parent = node
-    updated_node.evaluation_score, _ = eval.evaluate_state(updated_node)
+    updated_node.evaluation_score = eval.evaluate_state(updated_node)
     # sigmoid_val = sigmoid(evaluation, 0.005)
     tanh_val = np.tanh(updated_node.evaluation_score*0.005)
     updated_node.num_visits = num_prior_visits
@@ -549,7 +549,7 @@ def make_updated_node_with_eval_score(node: Node, friend_transition, enemy_trans
     updated_node = node.copy_node_state()
     updated_node.update(friend_transition, enemy_transition)
     updated_node.parent = node
-    updated_node.evaluation_score, _ = eval.evaluate_state(updated_node)
+    updated_node.evaluation_score = eval.evaluate_state(updated_node)
     return updated_node
 
 def sigmoid(x, b):

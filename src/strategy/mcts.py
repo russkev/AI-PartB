@@ -130,7 +130,7 @@ def evaluate_state(game_state: GameState):
     """
     Evaluate state. Assigning 1 if friend appears to be in a winning state
     """
-    final_score, _ = eval.evaluate_state(game_state)
+    final_score = eval.evaluate_state(game_state)
     if final_score > 0:
         return 1
     elif final_score == 0:

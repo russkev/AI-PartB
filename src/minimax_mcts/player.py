@@ -37,16 +37,18 @@ class Player:
         of the game, select an action to play this turn.
         """
 
+        ## BEATS MCTS_MINIMAX
+
         self.start_timer()
 
         if self.time_consumed < 28.5:
             if self.root.phase == Phase.EARLY:
                 result = greedy_choose(self.root)
             elif self.root.phase == Phase.MIDDLE:
+                result = minimax_paranoid_reduction(self.root)
+            else:
                 result = monte_carlo_tree_search(
                     self.root, num_iterations=3000, playout_amount=4, node_cutoff=5)
-            else:
-                result = minimax_paranoid_reduction(self.root)
         else:
             result = greedy_choose(self.root)
 

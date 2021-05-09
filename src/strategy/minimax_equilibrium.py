@@ -69,7 +69,7 @@ def __evaluate_equilibrium_recursive(game_state: GameState, fr_transitions, dept
 
     # Base case
     if depth == 0:
-        score, _ = evaluate_state(game_state)
+        score = evaluate_state(game_state)
         return None, score
 
     # Check for terminal state
@@ -102,7 +102,7 @@ def __row_scores(game_state: GameState, fr_transition, en_transitions):
     for en_transition in en_transitions:
         curr_state = game_state.copy()
         curr_state.update(fr_transition, en_transition)
-        score, _ = evaluate_state(curr_state)
+        score = evaluate_state(curr_state)
         row.append(score)
     return row
 
@@ -124,7 +124,7 @@ def __row_scores_recursive(
     for en_transition in en_transitions:
         curr_state = game_state.copy()
         curr_state.update(fr_transition, en_transition)
-        curr_score, _ = evaluate_state(curr_state)
+        curr_score = evaluate_state(curr_state)
         if curr_score > best_score:
             # Best score needs to be updated
             best_score = curr_score
@@ -141,7 +141,7 @@ def __row_scores_recursive(
 #     weights = [1, 100, -10, -5, -1, -0.1]
 
 #     # if depth == 0:
-#     #     score, _ = evaluate_state(game_state)
+#     #     score = evaluate_state(game_state)
 #     #     return None, score
 
 #     goal_score = goal_reward(game_state)
@@ -160,7 +160,7 @@ def __row_scores_recursive(
 #         # for en_transition in en_transitions:
 #         #     state_ij = game_state.copy()
 #         #     state_ij.update(fr_transition, en_transition)
-#         #     score_ij, _ = evaluate_state(state_ij, weights)
+#         #     score_ij, = evaluate_state(state_ij, weights)
 #         #     if score_ij > best_score:
 #         #         best_score = score_ij
 #         #     if score_ij > best_score - cutoff_range:

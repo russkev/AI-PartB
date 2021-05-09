@@ -24,8 +24,8 @@ def minimax_with_ml(game_state):
 
 def min_layer(move, responses):
     scores = []
-    for r in responses:
-        scores.append(r[1])
+    for response in responses:
+        scores.append(response[1])
     return min(scores)
 
 def max_layer(moves):
@@ -46,10 +46,10 @@ def build_state_tree(game_state: GameState):
     for i, f_move in enumerate(f_moves):
         minimax_tree.append((f_move, []))
         for j, e_move in enumerate(e_moves):
-            # eval_score, _ = evaluate_state(game_state.update(e_move, f_move))
+            # eval_score = evaluate_state(game_state.update(e_move, f_move))
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
-            eval_score, _ = evaluate_state(game_state_ij)
+            eval_score = evaluate_state(game_state_ij)
             # eval_score = evaluate(game_state_ij)
             minimax_tree[i][1].append((e_move,  eval_score))
             # minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).update(f_moves[i], e_moves[j]))))

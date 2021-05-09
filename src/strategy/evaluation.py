@@ -7,9 +7,9 @@ from time import time
 from state.token import defeat_by_token
 
 def evaluate_state_normalised(game_state: GameState):
-    final_score, scores = evaluate_state(game_state)
+    final_score = evaluate_state(game_state)
     final_score = np.tanh(final_score)
-    return final_score, scores
+    return final_score
 
 def evaluate_state(game_state: GameState, weights=None):
     """
@@ -18,7 +18,7 @@ def evaluate_state(game_state: GameState, weights=None):
 
     goal = goal_reward(game_state)
     if goal is not None:
-        return goal * 2000, []
+        return goal * 2000
 
     # Distance to killable pieces score (fast) (TODO should be non-linear I think)
     dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
@@ -81,7 +81,7 @@ def evaluate_state(game_state: GameState, weights=None):
 
     result = np.dot(scores, weights)
 
-    return result, []
+    return result
 
 def greedy_choose(game_state: GameState, weights=None, is_friend=True):
     ref_transitions = game_state.next_friend_transitions() if is_friend else game_state.next_enemy_transitions()
@@ -97,14 +97,14 @@ def greedy_choose(game_state: GameState, weights=None, is_friend=True):
         # new_state = game_state.update(friend_transition=friend_transition)
 
         # Find the evaluation score
-        eval_score, scores = evaluate_state(new_state, weights)
+        eval_score = evaluate_state(new_state, weights)
 
         # Add to queue. Use negative of score as first element of tuple since it is a min heap
         # A tuple of the individual scores are also included here for debugging purposes only
-        heappush(queue, (-1 * eval_score, tuple(scores), ref_transition))
+        heappush(queue, (-1 * eval_score, ref_transition))
 
-    (best_score, best_scores, best_move) = heappop(queue)
-    possible_moves = [(best_score, best_scores, best_move)]
+    (best_score, best_move) = heappop(queue)
+    possible_moves = [(best_score, best_move)]
 
     # Add all moves with the same best score to a list
     for (curr_score, *rest) in queue:
@@ -114,7 +114,7 @@ def greedy_choose(game_state: GameState, weights=None, is_friend=True):
             possible_moves.append((curr_score, *rest))
 
     # Randomly pick from that list
-    return possible_moves[np.random.choice(len(possible_moves), 1)[0]][2]
+    return possible_moves[np.random.choice(len(possible_moves), 1)[0]][1]
 
 
 def num_moves_difference(game_state: GameState):
