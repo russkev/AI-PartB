@@ -12,7 +12,7 @@ from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
 from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, simple_reduction
-from strategy.evaluation import greedy_choose
+from strategy.evaluation import evaluate_state, greedy_choose
 import cProfile
 
 class Player:
@@ -28,7 +28,7 @@ class Player:
         """
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
-        self.time = self.end_time = self.time_consumed = 0
+        self.start_time = self.end_time = self.time_consumed = 0
 
     def action(self):
         """
@@ -36,7 +36,7 @@ class Player:
         of the game, select an action to play this turn.
         """
         random_turns = 0
-        greedy_turns = 8
+        greedy_turns = 5
         # random_turns = 0
         # greedy_turns = 0
 
@@ -51,12 +51,20 @@ class Player:
         # else:
         #     result = monte_carlo_tree_search(self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5)
 
-
-
         if self.root.turn < greedy_turns:
+        # if self.root.turn < greedy_turns or self.time_consumed > 28.5 or evaluate_state(self.root) > 50:
             result = greedy_choose(self.root)
         else:
-            result = monte_carlo_tree_search(self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=2)
+            result = monte_carlo_tree_search(
+                self.root, 
+                playout_amount = 3, 
+                node_cutoff = 3,
+                outer_cutoff = 3,
+                num_iterations = 300, 
+                turn_time = 2, 
+                verbosity = 1,
+                exploration_constant = 0.8,
+            )
 
         self.end_timer()
 

@@ -39,12 +39,13 @@ class Player:
 
         self.start_timer()
 
-        if self.time_consumed < 28.5:
+        if self.time_consumed < 29.0:
             if self.root.phase == Phase.EARLY:
                 result = greedy_choose(self.root)
-            elif self.root.phase == Phase.MIDDLE:
+            elif self.root.phase == Phase.MIDDLE and self.time_consumed < 5:
+            # elif self.root.phase == Phase.MIDDLE:
                 result = monte_carlo_tree_search(
-                    self.root, num_iterations=3000, playout_amount=4, node_cutoff=5)
+                    self.root, playout_amount=4, node_cutoff=3, num_iterations=3000, turn_time=0.5, verbosity=0)
             else:
                 result = minimax_paranoid_reduction(self.root)
         else:

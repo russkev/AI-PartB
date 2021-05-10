@@ -9,6 +9,9 @@ Kevin Russell 1084088
 import random
 from state.game_state import GameState
 from strategy.minimax import minimax_paranoid_reduction
+from strategy.evaluation import greedy_choose
+from time import time
+
 
 class Player:
 
@@ -23,6 +26,9 @@ class Player:
         """
         
         self.game_state = GameState(is_upper=(player == "upper"))
+        self.game_state.pruning_is_aggressive = True
+        self.start_time = self.end_time = self.time_consumed = 0
+
 
     def action(self):
         """
@@ -30,7 +36,17 @@ class Player:
         of the game, select an action to play this turn.
         """
         
-        return minimax_paranoid_reduction(self.game_state)
+        self.start_timer()
+
+        if self.time_consumed < 28.5:
+            result = minimax_paranoid_reduction(self.game_state)
+        else:
+            result = greedy_choose(self.game_state)
+
+        self.end_timer()
+
+        return result
+
         
     def update(self, opponent_action, player_action):
         """
@@ -43,7 +59,9 @@ class Player:
         self.game_state.update(player_action, opponent_action)
 
     
+    def start_timer(self):
+        self.start_time = time()
 
-
-
-
+    def end_timer(self):
+        self.end_time = time()
+        self.time_consumed += self.end_time - self.start_time

@@ -44,6 +44,9 @@ def build_state_tree(game_state: GameState):
     random.shuffle(e_moves)
 
     for i, f_move in enumerate(f_moves):
+
+        eval_offset = repeated_state_offset(game_state, f_move)
+
         minimax_tree.append((f_move, []))
         for j, e_move in enumerate(e_moves):
             # eval_score = evaluate_state(game_state.update(e_move, f_move))
@@ -51,10 +54,20 @@ def build_state_tree(game_state: GameState):
             game_state_ij.update(f_move, e_move)
             eval_score = evaluate_state(game_state_ij)
             # eval_score = evaluate(game_state_ij)
-            minimax_tree[i][1].append((e_move,  eval_score))
+            minimax_tree[i][1].append((e_move,  eval_score + eval_offset))
             # minimax_tree[i][1].append((e_moves[j],  eval_function(copy.deepcopy(game_state).update(f_moves[i], e_moves[j]))))
 
     return minimax_tree
+
+def repeated_state_offset(game_state: GameState, fr_transition):
+    temp_state = game_state.copy()
+    temp_state.update(fr_transition)
+    if temp_state.existing_moves.limit_is_close:
+        return -400
+    elif temp_state.existing_moves.limit_reached:
+        return -2000
+    else:
+        return 0
 
 
 def build_state_tree_with_ml(game_state: GameState):

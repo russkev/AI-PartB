@@ -352,23 +352,11 @@ class GameState:
         return self.__str__()
 
     def __hash__(self):
-        return (f"{self.friends.__str__()}|{self.enemies.__str__()}").__hash__()
+        return (f"{self.friends.__str__()}").__hash__()
 
 
 if __name__ == '__main__':
     g = GameState()
-    # upper_g = GameState(True)
-    # lower_g = GameState(False)
-    # g.friends[(4,0)] = ["r"]
-    # g.next_transitions_for_side(True)
-    # g.friends[(3,1)] = ["r"]
-
-    # upper_g.next_transitions_for_side(True)
-
-    # lower_g.next_transitions_for_side(True)
-
-    # g.friends[(2,0)] = ['r', 'p']
-    # g.enemies[(2,1)] = ['s']
 
     move_1 = ('THROW', 's', (4,0))
     move_2 = ('THROW', 'r', (4,0))
@@ -393,11 +381,7 @@ class ExistingMoves:
         else:
             self.existing = existing
         
-        # if counts is None:
-        #     self.counts = collections.deque()
-        # else:
-        #     self.counts = counts
-
+        self.limit_is_close = 0
         self.limit_reached = limit_reached
 
     def add_game_state(self, game_state: GameState):
@@ -405,20 +389,12 @@ class ExistingMoves:
         hash = game_state.__hash__()
         if hash in self.existing:
             self.existing[hash] += 1
+            if self.existing[hash] >= MAX_REPEATED_MOVES - 1:
+                self.limit_is_close = True
             if self.existing[hash] >= MAX_REPEATED_MOVES:
                 self.limit_reached = True
         else:
             self.existing[hash] = 1
-        # state_data = (game_state.friends, game_state.enemies)
-
-        # try:
-        #     i = self.existing.index(state_data)
-        #     self.counts[i] += 1
-        #     if self.counts[i] >= MAX_REPEATED_MOVES:
-        #         self.limit_reached = True
-        # except ValueError:
-        #     self.existing.appendleft(state_data)
-        #     self.counts.appendleft(1)
             
     def copy(self):
         return ExistingMoves(self.existing.copy(), self.limit_reached) 
