@@ -17,6 +17,7 @@ import cProfile
 from strategy.minimax import minimax_paranoid_reduction
 from strategy.book import book_first_four_moves
 from strategy.util import sigmoid, boolean_from_probability
+from scipy.stats import norm
 
 class Player:
 
@@ -32,6 +33,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
+        self.norm = norm(500, 200)
 
     def action(self):
         """
@@ -41,9 +43,8 @@ class Player:
 
         self.start_timer()
 
-        # Branching factor of 400 is very low probability and 1000 is very high
-        probability = sigmoid(self.root.branching, 0.0086, 5)
-        use_minimax = boolean_from_probability(probability)
+        minimax_probability = self.norm.cdf(self.root.branching)
+        use_minimax = boolean_from_probability(minimax_probability)
 
         if self.time_consumed < 59:
             if self.root.turn < 4:
@@ -62,12 +63,15 @@ class Player:
                     turn_time = 0.85, 
                     exploration_constant = 0.8,
                     use_slow_culling = False,
-                    verbosity = 1,
+                    verbosity = 0,
                     use_prior = True,
                     num_priors = 10,
                 )
         else:
+            # print("GREEDY USED")
             result = greedy_choose(self.root)
+        
+        self.end_timer()
 
         return result
 
