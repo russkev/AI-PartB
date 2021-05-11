@@ -9,11 +9,13 @@ Kevin Russell 1084088
 from random import randrange
 from time import time
 from state.game_state import GameState
+from strategy.book import book_first_four_moves
 from strategy.rando_util import biased_random_move
 import numpy as np
 from strategy.mcts_duct import Node, monte_carlo_tree_search, simple_reduction
 from strategy.evaluation import evaluate_state, greedy_choose
 from tests.mcts_tests import test_4
+from strategy.book import book_first_four_moves
 import cProfile
 
 class Player:
@@ -30,7 +32,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
-        test_4()
+        # test_4()
 
     def action(self):
         """
@@ -53,9 +55,9 @@ class Player:
         # else:
         #     result = monte_carlo_tree_search(self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5)
 
-        if self.root.turn < greedy_turns:
+        if self.root.turn < 4:
         # if self.root.turn < greedy_turns or self.time_consumed > 28.5 or evaluate_state(self.root) > 50:
-            result = greedy_choose(self.root)
+            result = book_first_four_moves(self.root)
         else:
             result = monte_carlo_tree_search(
                 self.root, 
@@ -63,12 +65,12 @@ class Player:
                 node_cutoff = 3,
                 outer_cutoff = 3,
                 num_iterations = 900, 
-                turn_time = 1, 
+                turn_time = 0.5, 
                 exploration_constant = 0.8,
                 use_slow_culling = False,
                 verbosity = 0,
                 use_prior = True,
-                num_priors = 4,
+                num_priors = 10,
             )
 
         self.end_timer()

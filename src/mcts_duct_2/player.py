@@ -61,10 +61,10 @@ class Player:
                 node_cutoff=5,
                 outer_cutoff=3,
                 num_iterations=900,
-                turn_time=1,
+                turn_time=0.5,
                 exploration_constant=0.8,
                 use_slow_culling=True,
-                verbosity=1,
+                verbosity=0,
                 use_prior=False,
                 num_priors=4,
             )
