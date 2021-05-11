@@ -11,7 +11,7 @@ from time import time
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
-from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, simple_reduction
+from strategy.mcts_duct import Node, monte_carlo_tree_search, simple_reduction
 from strategy.evaluation import greedy_choose
 import cProfile
 
@@ -37,7 +37,7 @@ class Player:
         of the game, select an action to play this turn.
         """
         random_turns = 0
-        greedy_turns = 8
+        greedy_turns = 5
         # random_turns = 0
         # greedy_turns = 0
 
@@ -53,8 +53,21 @@ class Player:
         if self.root.turn < greedy_turns:
             result = greedy_choose(self.root)
         else:
+            # result = monte_carlo_tree_search(
+            #     self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5, verbosity=0)
             result = monte_carlo_tree_search(
-                self.root, playout_amount=3, node_cutoff=3, num_iterations=300, turn_time=0.5, verbosity=0)
+                self.root,
+                playout_amount=3,
+                node_cutoff=5,
+                outer_cutoff=3,
+                num_iterations=900,
+                turn_time=1,
+                exploration_constant=0.8,
+                use_slow_culling=True,
+                verbosity=1,
+                use_prior=False,
+                num_priors=4,
+            )
 
         self.end_timer()
 

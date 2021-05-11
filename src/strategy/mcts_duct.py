@@ -6,8 +6,6 @@ David Peel 964682
 Kevin Russell 1084088
 
 
-
-
 Monte Carlo Tree Search with Decoupled Upper Confidence Bounds
 
 Algorithm described here:
@@ -22,26 +20,13 @@ https://hal.inria.fr/inria-00164003/document
 
 Using evaluation functions in Monte Carlo Tree Search:
 https://www.sciencedirect.com/science/article/pii/S0304397516302717
+and here:
+https://link.springer.com/content/pdf/10.1007%2F978-3-319-14923-3_4.pdf
 
 Also referenced these web pages:
-
 https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
 https://github.com/AdamStelmaszczyk/gtsa/blob/master/cpp/gtsa.hpp
 
-
-
-Benchmarks:
-mcts_duct vs kev_greedy_5, 10,000 iterations per turn:
-Total: 32 | Wins: 15 | Draws: 14 | Losses: 3 | Average time: 13.5 minutes (810 seconds)
-
-Upper wins: 15/35, with ratio: 0.43
-Lower wins: 3/35, with ratio: 0.09
-Draws: 17/35, with ratio: 0.49
-
-mcts_duct vs kev_greedy_5, 1,000 iterations per turn:
-Upper wins: 5/35, with ratio: 0.14
-Lower wins: 17/35, with ratio: 0.49
-Draws: 13/35, with ratio: 0.37
 """
 
 from heapq import heappush, heappop
@@ -54,14 +39,15 @@ import strategy.evaluation as eval
 import numpy as np
 from state.node_mcts_duct import Node
 DEBUG_MODE = False
-USE_PRIOR = False
-NUM_PRIOR_VISITS = 4
+# NUM_PRIOR_VISITS = 4
 USE_PRUNING = True
 NUM_TO_KEEP = 5
 rollout_count = 0
 
 exp_constant = 0.8 # np.sqrt(2)
 start_time = end_time = time_consumed = 0
+is_using_prior = False
+num_prior_visits = 4
 
 def start_timer():
     global start_time
@@ -81,9 +67,11 @@ def monte_carlo_tree_search(
         outer_cutoff=5, 
         num_iterations=float("inf"), 
         turn_time=float("inf"), 
-        verbosity=0,
         exploration_constant=0,
-
+        use_slow_culling = False,
+        verbosity=0,
+        use_prior=True,
+        num_priors=4,
     ) -> Node:
     """
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
@@ -91,14 +79,16 @@ def monte_carlo_tree_search(
     """
 
 
-    global rollout_count, start_time, exp_constant
+    global rollout_count, start_time, exp_constant, is_using_prior, num_prior_visits
     if exploration_constant != 0:
         exp_constant=exploration_constant
     start_time = time()
     root.parent = None
+    is_using_prior = use_prior
+    num_prior_visits = num_priors
     while (time() < start_time + turn_time and root.num_visits < num_iterations):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
-        leaf = traverse(root, node_cutoff, outer_cutoff, verbosity)
+        leaf = traverse(root, node_cutoff, outer_cutoff, verbosity, use_slow_culling)
         # Make random moves to terminal and record the win, lose or draw score
         simulation_result = rollout(leaf, playout_amount)
         # Update all nodes in the appropriate branch with the simulation result (again, branch does
@@ -171,7 +161,7 @@ def print_stats(root: Node, friend_winner, enemy_winner, winning_node: Node):
         print(f"* {row_score:+6} | {row_visits:+6} | {ratio:+.3f} | move: {root.friend_transitions[i]}")
 
 
-def traverse(node: Node, node_cutoff, outer_cutoff, verbosity):
+def traverse(node: Node, node_cutoff, outer_cutoff, verbosity, use_slow_culling):
     """
     Starting at the main root, traverse the tree. Use the UCT value to decide which child to visit 
     in each step. 
@@ -188,7 +178,7 @@ def traverse(node: Node, node_cutoff, outer_cutoff, verbosity):
         # Node is terminal
         return node
     else:
-        add_children(node, node_cutoff, outer_cutoff, verbosity)
+        add_children(node, node_cutoff, outer_cutoff, verbosity, use_slow_culling)
 
     return pick_unvisited_child(node)
 
@@ -339,8 +329,8 @@ def pick_unvisited_child(node: "Node") -> Node:
     Possible to use a heuristic here instead of randomness.
     """
 
-    if USE_PRIOR:
-        unvisited = node.unvisited_children(NUM_PRIOR_VISITS)
+    if is_using_prior:
+        unvisited = node.unvisited_children(num_prior_visits)
     else:
         unvisited = node.unvisited_children()
     # shuffle(unvisited)
@@ -375,7 +365,7 @@ def get_best_child(node: Node):
     best_uct_friend = float("-inf")
     best_row_index = 0
     row_indices = list(range(len(node.matrix)))
-    # shuffle(row_indices)
+    shuffle(row_indices)
 
     for i in row_indices:
         row_score_sum, row_visit_sum, _ = sum_stats(node, i, is_row=True)
@@ -388,7 +378,7 @@ def get_best_child(node: Node):
     best_uct_enemy = float("inf")
     best_col_index = 0
     col_indices = list(range(len(node.matrix[0])))
-    # shuffle(col_indices)
+    shuffle(col_indices)
 
     for j in col_indices:
         col_score_sum, col_visit_sum, _ = sum_stats(node, j, is_row=False)
@@ -409,7 +399,7 @@ def get_uct(parent_visits, visits, score, c):
     return score / visits + c * np.sqrt(np.log(parent_visits) / visits)
 
 
-def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity):
+def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity, use_slow_culling):
     """
     Calculate all friend and enemy moves that can be reached from the node state. 
     
@@ -417,6 +407,7 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity):
     """
     # TODO for USE_PRIOR, figure out whether the parent needs to be updated with the new number
     # of visits and the updated q_score
+    global is_using_prior
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
@@ -425,13 +416,22 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity):
             num_en = len(node.enemy_transitions)
             print(f"NUM_TRANSITIONS: {num_fr * num_en} | NUM_FRIEND: {num_fr} | NUM_ENEMY: {num_en}")
         
-        prune_transitions(node, outer_cutoff)
-        update_with_matrix(node)
-        # update_with_pruned_matrix(node, node_cutoff)
+        if use_slow_culling:
+            update_with_pruned_matrix(node, node_cutoff)
+        elif is_using_prior:
+            prune_transitions(node, outer_cutoff)
+            update_with_matrix_and_priors(node)
+        else:
+            prune_transitions(node, outer_cutoff)
+            update_with_matrix_and_priors(node)
 
 def prune_transitions(node: Node, outer_cutoff):
     fr_greedy_transition = eval.greedy_choose(node, is_friend=True)
     en_greedy_transition = eval.greedy_choose(node, is_friend=False)
+
+    # Shuffle so that states with equal scores have equal chance of being picked
+    shuffle(node.friend_transitions)
+    shuffle(node.enemy_transitions)
 
     fr_scores = []
     en_scores = []
@@ -439,11 +439,13 @@ def prune_transitions(node: Node, outer_cutoff):
     for i, fr_transition in enumerate(node.friend_transitions):
         state = node.copy()
         state.update(fr_transition, en_greedy_transition)
-        heappush(fr_scores, (-1 * eval.evaluate_state(state), i))
+        score = score_with_repeated_state_check(node, eval.evaluate_state(state))
+        heappush(fr_scores, (-1 * score, i))
     
     for j, en_transition in enumerate(node.enemy_transitions):
         state = node.copy()
         state.update(fr_greedy_transition, en_transition)
+        score = eval.evaluate_state(state)
         heappush(en_scores, (+1 * eval.evaluate_state(state), j))
     
     new_fr_transitions = []
@@ -459,6 +461,16 @@ def prune_transitions(node: Node, outer_cutoff):
     node.enemy_transitions = new_en_transitions
         
 
+def score_with_repeated_state_check(node: Node, score):
+    new_score = score
+    if node.existing_moves.limit_is_close:
+        new_score -= 500
+    if node.existing_moves.limit_reached:
+        if score > 0:
+            score-= 10000
+        else:
+            score -= 500
+    return score
 
 def prune_children(node: Node, node_cutoff):
     """
@@ -506,6 +518,24 @@ def update_with_matrix(node: Node):
         node.matrix.append(row)
 
 
+def update_with_matrix_and_priors(node: Node):
+    global num_prior_visits
+    node.matrix = []
+    for i in range(len(node.friend_transitions)):
+        row = []
+        for j in range(len(node.enemy_transitions)):
+            updated_node = node.copy_node_state()
+            updated_node.update(
+                node.friend_transitions[i], node.enemy_transitions[j])
+            updated_node.parent = node
+            updated_node_score = eval.evaluate_state(updated_node)
+            tanh_score = np.tanh(updated_node_score*0.005)
+            updated_node.num_visits = num_prior_visits
+            updated_node.q_value = tanh_score * num_prior_visits
+            row.append(updated_node)
+        node.matrix.append(row)
+
+
 def update_with_pruned_matrix(node: Node, node_cutoff):
 
     fr_scores, en_scores = __get_prune_scores_slow(node)
@@ -532,25 +562,6 @@ def update_with_pruned_matrix(node: Node, node_cutoff):
 
     node.friend_transitions = new_fr_transitions
     node.enemy_transitions = new_en_transitions
-
-
-def __get_prune_scores_quick(node: Node):
-    en_scores = []
-    for j, en_transition in enumerate(node.enemy_transitions):
-        updated_node = node.copy_node_state()
-        updated_node.update(enemy_transition=en_transition)
-        score = eval.evaluate_state(updated_node)
-        heappush(en_scores, (score, j))
-
-    fr_scores = []
-    for i, fr_transition in enumerate(node.friend_transitions):
-        updated_node = node.copy_node_state()
-        _, en_tr_index = en_scores[0]
-        updated_node.update(fr_transition, node.enemy_transitions[en_tr_index])
-        score = eval.evaluate_state(updated_node)
-        heappush(fr_scores, (-score, i))
-
-    return fr_scores, en_scores
 
 
 def __get_prune_scores_slow(node: Node):
@@ -589,31 +600,31 @@ def __get_prune_scores_slow_for_side(node: Node, is_friend):
     return scores
 
 
-def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition, num_prior_visits):
-    """
-    Make new node and give it existing visited and q_value counts based on the evaluation function
-    return.
-    """
-    updated_node = node.copy_node_state()
-    updated_node.update(friend_transition, enemy_transition)
-    updated_node.parent = node
-    updated_node.evaluation_score = eval.evaluate_state(updated_node)
-    # sigmoid_val = sigmoid(evaluation, 0.005)
-    tanh_val = np.tanh(updated_node.evaluation_score*0.005)
-    updated_node.num_visits = num_prior_visits
-    updated_node.q_value = int(tanh_val * num_prior_visits)
+# def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition, num_prior_visits):
+#     """
+#     Make new node and give it existing visited and q_value counts based on the evaluation function
+#     return.
+#     """
+#     updated_node = node.copy_node_state()
+#     updated_node.update(friend_transition, enemy_transition)
+#     updated_node.parent = node
+#     updated_node.evaluation_score = eval.evaluate_state(updated_node)
+#     # sigmoid_val = sigmoid(evaluation, 0.005)
+#     tanh_val = np.tanh(updated_node.evaluation_score*0.005)
+#     updated_node.num_visits = num_prior_visits
+#     updated_node.q_value = int(tanh_val * num_prior_visits)
     
-    return updated_node
+#     return updated_node
 
-def make_updated_node_with_eval_score(node: Node, friend_transition, enemy_transition):
-    """
-    Make new node and give it the evaluation score
-    """
-    updated_node = node.copy_node_state()
-    updated_node.update(friend_transition, enemy_transition)
-    updated_node.parent = node
-    updated_node.evaluation_score = eval.evaluate_state(updated_node)
-    return updated_node
+# def make_updated_node_with_eval_score(node: Node, friend_transition, enemy_transition):
+#     """
+#     Make new node and give it the evaluation score
+#     """
+#     updated_node = node.copy_node_state()
+#     updated_node.update(friend_transition, enemy_transition)
+#     updated_node.parent = node
+#     updated_node.evaluation_score = eval.evaluate_state(updated_node)
+#     return updated_node
 
 def sigmoid(x, b):
     """
@@ -621,98 +632,3 @@ def sigmoid(x, b):
     """
     return 1 / (1 + np.exp(-b * x))
 
-def test_1():
-    """
-    Test function to investigate the MCTS code with a minimal possible actions.
-    """
-    state = GameState()
-    node = Node(state)
-    node.friend_throws = 9
-    node.enemy_throws = 9
-    # node.is_friend=True
-
-    node.friends = {(-3, 0):['r'], (3,1):['s']}
-    node.enemies = {(-4, 0):['s'], (-4,4):['p']}
-    result = simple_reduction(node)
-    print(result.action)
-
-def test_2():
-    """
-    *   throws:' `-.      ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-    *       | upper |    |       |       |  (P)  |       |       |
-    *       |   5   |    |  4,-4 |  4,-3 |  4,-2 |  4,-1 |  4, 0 |
-    *    ,-' `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-    *   | lower |    |       |       |       |       |  (S)  |       |
-    *   |   4   |    |  3,-4 |  3,-3 |  3,-2 |  3,-1 |  3, 0 |  3, 1 |
-    *    `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-    *            |       |       |       |       |       |       |       |
-    *            |  2,-4 |  2,-3 |  2,-2 |  2,-1 |  2, 0 |  2, 1 |  2, 2 |
-    *         ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-    *        |       |       |       |  (R)  |       |  (P)  |       |       |
-    *        |  1,-4 |  1,-3 |  1,-2 |  1,-1 |  1, 0 |  1, 1 |  1, 2 |  1, 3 |
-    *     ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-    *    |       |       |       |       |       |       |       |  (R)  |       |
-    *    |  0,-4 |  0,-3 |  0,-2 |  0,-1 |  0, 0 |  0, 1 |  0, 2 |  0, 3 |  0, 4 |
-    *     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-    *        |       |       |       |       |       |       |  >s<  |       |
-    *        | -1,-3 | -1,-2 | -1,-1 | -1, 0 | -1, 1 | -1, 2 | -1, 3 | -1, 4 |
-    *         `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-    *            |  >s<  |  >p<  |       |       |       |       |       |
-    *            | -2,-2 | -2,-1 | -2, 0 | -2, 1 | -2, 2 | -2, 3 | -2, 4 |
-    *             `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-    *                |       |       |       |  >r<  |       |       |
-    *                | -3,-1 | -3, 0 | -3, 1 | -3, 2 | -3, 3 | -3, 4 |
-    *                 `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'   key:' `-.
-    *                    |       |       |       |       |       |       | (sym) |
-    *                    | -4, 0 | -4, 1 | -4, 2 | -4, 3 | -4, 4 |       |  r, q |
-    *                     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'         `-._,-'
-    """
-    state = GameState()
-    node = Node(state)
-    node.friend_throws = 5
-    node.enemy_throws = 4
-    node.friends = {(0, 3): ['r'], (1, -1): ['r'], (1, 1): ['p'], (3, 0): ['s'], (4, -2): ['p']}
-    node.enemies = {(-3, 2): ['r'], (-2, -2): ['s'], (-2, -1): ['p'], (-1, 3): ['s']}
-    # simple_reduction(node)
-    monte_carlo_tree_search(node, num_iterations=10, playout_amount=3, node_cutoff=10)
-
-
-def test_3():
-    """
-*   throws:' `-.      ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-*       | upper |    |       |       |       |       |       |
-*       |   2   |    |  4,-4 |  4,-3 |  4,-2 |  4,-1 |  4, 0 |
-*    ,-' `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-*   | lower |    |       |       |  (R)  |       |       |       |
-*   |   2   |    |  3,-4 |  3,-3 |  3,-2 |  3,-1 |  3, 0 |  3, 1 |
-*    `-._,-'  ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-*            |       |  (P)  |       |       |       |       |       |
-*            |  2,-4 |  2,-3 |  2,-2 |  2,-1 |  2, 0 |  2, 1 |  2, 2 |
-*         ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-*        |  >s<  |       |       |       |       |       |       |       |
-*        |  1,-4 |  1,-3 |  1,-2 |  1,-1 |  1, 0 |  1, 1 |  1, 2 |  1, 3 |
-*     ,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-.
-*    |       |       |       |       |       |       |       |       |       |
-*    |  0,-4 |  0,-3 |  0,-2 |  0,-1 |  0, 0 |  0, 1 |  0, 2 |  0, 3 |  0, 4 |
-*     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-*        |       |       |       |       |       |       |       |       |
-*        | -1,-3 | -1,-2 | -1,-1 | -1, 0 | -1, 1 | -1, 2 | -1, 3 | -1, 4 |
-*         `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-*            |       |       |       |       |       |       |       |
-*            | -2,-2 | -2,-1 | -2, 0 | -2, 1 | -2, 2 | -2, 3 | -2, 4 |
-*             `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'
-*                |       |       |       |       |       |       |
-*                | -3,-1 | -3, 0 | -3, 1 | -3, 2 | -3, 3 | -3, 4 |
-*                 `-._,-' `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'   key:' `-.
-*                    |  >r<  |       |       |       |       |       | (sym) |
-*                    | -4, 0 | -4, 1 | -4, 2 | -4, 3 | -4, 4 |       |  r, q |
-*                     `-._,-' `-._,-' `-._,-' `-._,-' `-._,-'         `-._,-'
-    """
-    state = GameState()
-    node = Node(state)
-    node.friend_throws = 2
-    node.enemy_throws = 2
-    node.friends = {(2, -3): ['p'], (3, -2): ['r']}
-    node.enemies = {(-4, 0): ['r'], (1, -4): ['s']}
-    simple_reduction(node)
-    monte_carlo_tree_search(node, num_iterations=300, playout_amount=3, node_cutoff=5)

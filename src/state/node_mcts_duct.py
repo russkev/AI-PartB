@@ -22,6 +22,7 @@ class Node(GameState):
             num_visits=0,
             evaluation_score=0,
         ):
+
         """
         Initialise with a GameState.
         Set is_friend parameter to false since our starting position (root) will always be the case 
@@ -121,7 +122,7 @@ class Node(GameState):
         """
         Display the value / num_visits. This is nice and small so fits into a matrix.
         """
-        return f"{self.q_value}/{self.num_visits}"
+        return f"{self.q_value:.2f}/{self.num_visits}"
         # return f"{self.q_value}/{self.num_visits}/{self.evaluation_score}"
 
     def __lt__(self, other):

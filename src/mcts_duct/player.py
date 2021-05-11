@@ -11,8 +11,9 @@ from time import time
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
-from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, simple_reduction
+from strategy.mcts_duct import Node, monte_carlo_tree_search, simple_reduction
 from strategy.evaluation import evaluate_state, greedy_choose
+from tests.mcts_tests import test_4
 import cProfile
 
 class Player:
@@ -29,6 +30,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
+        test_4()
 
     def action(self):
         """
@@ -60,10 +62,13 @@ class Player:
                 playout_amount = 3, 
                 node_cutoff = 3,
                 outer_cutoff = 3,
-                num_iterations = 300, 
-                turn_time = 2, 
-                verbosity = 1,
+                num_iterations = 900, 
+                turn_time = 1, 
                 exploration_constant = 0.8,
+                use_slow_culling = False,
+                verbosity = 0,
+                use_prior = True,
+                num_priors = 4,
             )
 
         self.end_timer()
