@@ -10,6 +10,7 @@ import random
 from state.game_state import GameState
 from strategy.minimax import minimax_paranoid_reduction
 from strategy.evaluation import greedy_choose
+from strategy.book import book_first_four_moves
 from time import time
 
 
@@ -38,7 +39,10 @@ class Player:
         
         self.start_timer()
 
-        if self.time_consumed < 28.5:
+
+        if self.root.turn < 4:
+            result = book_first_four_moves(self.root)
+        elif self.time_consumed < 59:
             result = minimax_paranoid_reduction(self.game_state)
         else:
             result = greedy_choose(self.game_state)

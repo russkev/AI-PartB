@@ -8,6 +8,7 @@ Kevin Russell 1084088
 
 import sys, subprocess
 import csv
+from subprocess import PIPE
 
 DEFAULT_ITERATIONS = 30
 
@@ -35,7 +36,7 @@ def main():
     for i in range(iterations):
         game_result = subprocess.run(
             ["python3", "-m", "referee", upper, lower, "-v" "0"],
-            capture_output = True,
+            stdout=PIPE,
             encoding = "utf-8"
             )
 
