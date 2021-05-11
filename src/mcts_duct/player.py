@@ -39,10 +39,6 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        random_turns = 0
-        greedy_turns = 5
-        # random_turns = 0
-        # greedy_turns = 0
 
         self.start_timer()
 

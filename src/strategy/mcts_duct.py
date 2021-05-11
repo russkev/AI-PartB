@@ -411,10 +411,7 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity, use_slow_cu
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
-        if verbosity >= 1 and node.parent == None:
-            num_fr = len(node.friend_transitions)
-            num_en = len(node.enemy_transitions)
-            print(f"NUM_TRANSITIONS: {num_fr * num_en} | NUM_FRIEND: {num_fr} | NUM_ENEMY: {num_en}")
+        node.branching = len(node.friend_transitions) * len(node.enemy_transitions)
         
         if use_slow_culling:
             update_with_pruned_matrix(node, node_cutoff)

@@ -11,11 +11,11 @@ from time import time
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import numpy as np
-from strategy.mcts_duct import Node, monte_carlo_tree_search, test_2, test_3, simple_reduction
+from strategy.mcts_duct import Node, monte_carlo_tree_search, simple_reduction
 from strategy.evaluation import greedy_choose
 import cProfile
 from strategy.minimax import minimax_paranoid_reduction
-
+from strategy.book import book_first_four_moves
 
 class Player:
 
@@ -29,36 +29,38 @@ class Player:
         as Lower).
         """
         self.root = Node(GameState(is_upper=(player == "upper")))
-        self.time = self.end_time = self.time_consumed = 0
+        self.root.pruning_is_aggressive = True
+        self.start_time = self.end_time = self.time_consumed = 0
 
     def action(self):
         """
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.
         """
-        random_turns = 3
-        greedy_turns = 20
-        # random_turns = 0
-        # greedy_turns = 0
-
-        mcts_until = 15
-        minimax_until = 28.5
 
         self.start_timer()
 
 
-
-        if self.root.turn < random_turns:
-            result = biased_random_move(self.root, is_friend=True)
-        elif self.root.turn < greedy_turns:
-            result = greedy_choose(self.root)
-        elif self.time_consumed < mcts_until:
-            result = monte_carlo_tree_search(self.root, num_iterations=3000, playout_amount=1, node_cutoff=5)
-        elif self.time_consumed < minimax_until:
-            result = minimax_paranoid_reduction(self.root)
+        if self.root.turn < 4:
+            result = book_first_four_moves(self.root)
+        elif self.root.branching < 360:
+            print("USING MCTS")
+            result = monte_carlo_tree_search(
+                self.root, 
+                playout_amount = 3, 
+                node_cutoff = 3,
+                outer_cutoff = 3,
+                num_iterations = 900, 
+                turn_time = 0.85, 
+                exploration_constant = 0.8,
+                use_slow_culling = False,
+                verbosity = 0,
+                use_prior = True,
+                num_priors = 10,
+            )
         else:
-            result = greedy_choose(self.root)
-        self.end_timer()
+            print("USING MINIMAX")
+            result = minimax_paranoid_reduction(self.root)
 
         return result
 

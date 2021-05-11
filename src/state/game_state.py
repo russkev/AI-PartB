@@ -37,7 +37,17 @@ class GameState:
     slide_options = [(r, q) for r in [-1, 0, 1] for q in [-1, 0, 1] if (abs(r + q) < 2) and (r != 0 or q != 0)]
     board = Board(slide_options)
 
-    def __init__(self, is_upper=True, turn=0, friend_throws=0, enemy_throws=0, friends=None, enemies=None, existing_moves=None, pruning_is_aggressive=True):
+    def __init__(
+        self, is_upper=True, 
+        turn=0, 
+        friend_throws=0, 
+        enemy_throws=0, 
+        friends=None, 
+        enemies=None, 
+        existing_moves=None, 
+        pruning_is_aggressive=True, 
+        prev_branching=0
+    ):
         self.phase = Phase.EARLY
         self.is_upper = is_upper
         self.turn = turn
@@ -50,6 +60,7 @@ class GameState:
         else:
             self.existing_moves = existing_moves
         self.pruning_is_aggressive = pruning_is_aggressive
+        self.branching = prev_branching
 
     def update(self, friend_transition=None, enemy_transition=None):
         """ applies moves from both players to the game state, progressing the game one turn."""
@@ -70,8 +81,17 @@ class GameState:
             self.phase = Phase.MIDDLE
 
     def copy(self) -> "GameState":
-        new_game_state = GameState(self.is_upper, self.turn, self.friend_throws, self.enemy_throws, 
-                    self.friends.copy(), self.enemies.copy(), self.existing_moves.copy(), self.pruning_is_aggressive)
+        new_game_state = GameState(
+            self.is_upper, 
+            self.turn, 
+            self.friend_throws, 
+            self.enemy_throws,
+            self.friends.copy(), 
+            self.enemies.copy(), 
+            self.existing_moves.copy(), 
+            self.pruning_is_aggressive, 
+            self.branching
+        )
         return new_game_state
 
     def num_friends(self):

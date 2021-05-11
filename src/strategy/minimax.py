@@ -52,6 +52,7 @@ def build_state_tree(game_state: GameState):
             # eval_score = evaluate_state(game_state.update(e_move, f_move))
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
+            game_state_ij.branching = len(f_moves) * len(e_moves)
             eval_score = evaluate_state(game_state_ij)
             # eval_score = evaluate(game_state_ij)
             minimax_tree[i][1].append((e_move,  eval_score + eval_offset))

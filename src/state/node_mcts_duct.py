@@ -112,6 +112,7 @@ class Node(GameState):
             # New node needs to be created
             updated_node = self.copy_node_state()
             updated_node.update(friend_transition, enemy_transition)
+            updated_node.branching = self.branching
             if parent is not None:
                 updated_node.parent = parent
             return updated_node
