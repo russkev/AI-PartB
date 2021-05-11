@@ -16,6 +16,7 @@ from strategy.evaluation import greedy_choose
 import cProfile
 from strategy.minimax import minimax_paranoid_reduction
 from strategy.book import book_first_four_moves
+from strategy.util import sigmoid, boolean_from_probability
 
 class Player:
 
@@ -40,27 +41,33 @@ class Player:
 
         self.start_timer()
 
+        # Branching factor of 400 is very low probability and 1000 is very high
+        probability = sigmoid(self.root.branching, 0.0086, 5)
+        use_minimax = boolean_from_probability(probability)
 
-        if self.root.turn < 4:
-            result = book_first_four_moves(self.root)
-        elif self.root.branching < 600:
-            # print("USING MCTS")
-            result = monte_carlo_tree_search(
-                self.root, 
-                playout_amount = 3, 
-                node_cutoff = 3,
-                outer_cutoff = 3,
-                num_iterations = 900, 
-                turn_time = 0.85, 
-                exploration_constant = 0.8,
-                use_slow_culling = False,
-                verbosity = 0,
-                use_prior = True,
-                num_priors = 10,
-            )
+        if self.time_consumed < 59:
+            if self.root.turn < 4:
+                result = book_first_four_moves(self.root)
+            elif use_minimax:
+                # print("USING MINIMAX")
+                result = minimax_paranoid_reduction(self.root)
+            else:
+                # print("USING MCTS")
+                result = monte_carlo_tree_search(
+                    self.root, 
+                    playout_amount = 3, 
+                    node_cutoff = 3,
+                    outer_cutoff = 3,
+                    num_iterations = 900, 
+                    turn_time = 0.85, 
+                    exploration_constant = 0.8,
+                    use_slow_culling = False,
+                    verbosity = 1,
+                    use_prior = True,
+                    num_priors = 10,
+                )
         else:
-            # print("USING MINIMAX")
-            result = minimax_paranoid_reduction(self.root)
+            result = greedy_choose(self.root)
 
         return result
 

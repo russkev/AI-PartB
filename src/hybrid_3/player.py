@@ -43,7 +43,7 @@ class Player:
 
         if self.root.turn < 4:
             result = book_first_four_moves(self.root)
-        elif self.root.branching < 600:
+        elif self.root.branching < 300:
             # print("USING MCTS")
             result = monte_carlo_tree_search(
                 self.root, 
