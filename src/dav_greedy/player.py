@@ -40,8 +40,8 @@ class Player:
         self.start_timer()
 
 
-        if self.root.turn < 4:
-            result = book_first_four_moves(self.root)
+        if self.game_state.turn < 4:
+            result = book_first_four_moves(self.game_state)
         elif self.time_consumed < 59:
             result = minimax_paranoid_reduction(self.game_state)
         else:
