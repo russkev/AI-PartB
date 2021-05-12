@@ -2,8 +2,9 @@ import math
 import copy
 import random
 from state.game_state import GameState
-from strategy.evaluation import evaluate_state, 
+from strategy.evaluation import evaluate_state, evaluate_state_fast
 from heapq import heappush
+from state.node_mcts_duct import Node
 
 def minimax_paranoid_reduction(game_state):
     """
@@ -20,11 +21,12 @@ def minimax_paranoid_reduction_tree(game_state):
     return build_state_tree(game_state)
 
 
-
-
 def build_state_tree_fast(game_state: GameState):
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
+    f_moves_len = len(f_moves)
+    e_moves_len = len(e_moves)
+    game_state.branching = f_moves_len * e_moves_len
 
     random.shuffle(f_moves)
     random.shuffle(e_moves)
@@ -39,7 +41,6 @@ def build_state_tree_fast(game_state: GameState):
         for e_move in e_moves:
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
-            game_state_ij.branching = len(f_moves) * len(e_moves)
             eval_score = evaluate_state(game_state_ij)
             if eval_score < min_score:
                 min_score = eval_score
@@ -51,9 +52,17 @@ def build_state_tree_fast(game_state: GameState):
     return max_move
 
 def build_state_tree(game_state: GameState):
+    """
+    returns a heap of the following type:
+    [(min_score, fr_transition, [(score, en_transition, Node)])]
+
+    The first element of the outer list will be the transition that achieves the maximum of the
+    min scores but with the score as a negative so that it works as a min heap
+
+
+    """
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
-    game_state.branching = len(f_moves) * len(e_moves)
 
     random.shuffle(f_moves)
     random.shuffle(e_moves)
@@ -66,9 +75,10 @@ def build_state_tree(game_state: GameState):
         for e_move in e_moves:
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
-            eval_score = evaluate_state(game_state_ij)
-            heappush(min_row, (eval_score, e_move))
-        min_score, _ = min_row[0]
+            eval_score = evaluate_state_fast(game_state_ij)
+            heappush(min_row, (eval_score, e_move, Node(game_state_ij)))
+        min_score, _, _ = min_row[0]
+        # push negative of score so that heappop will return the actual max score
         heappush(minimax_tree, (-(min_score+eval_offset), f_move, min_row))
     
     return minimax_tree

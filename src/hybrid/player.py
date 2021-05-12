@@ -34,7 +34,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
-        self.norm = norm(200, 200)
+        self.norm = norm(550, 200)
 
     def action(self):
         """
@@ -60,7 +60,7 @@ class Player:
                     playout_amount=3,
                     node_cutoff=3,
                     outer_cutoff=3,
-                    num_iterations=900,
+                    num_iterations=1000,
                     turn_time=0.85,
                     exploration_constant=0.8,
                     use_slow_culling=False,

@@ -58,13 +58,13 @@ class Player:
             result = monte_carlo_tree_search(
                 self.root, 
                 playout_amount = 3, 
-                node_cutoff = 3,
+                node_cutoff = 6,
                 outer_cutoff = 3,
-                num_iterations = 900, 
+                num_iterations = 9000, 
                 turn_time = 0.5, 
                 exploration_constant = 0.8,
                 use_slow_culling = False,
-                verbosity = 0,
+                verbosity = 1,
                 use_prior = True,
                 num_priors = 10,
             )

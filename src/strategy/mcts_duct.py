@@ -36,6 +36,7 @@ from random import shuffle
 from state.game_state import GameState
 from strategy.rando_util import biased_random_move
 import strategy.evaluation as eval
+from strategy.minimax import minimax_paranoid_reduction_tree
 import numpy as np
 from state.node_mcts_duct import Node
 DEBUG_MODE = False
@@ -330,7 +331,7 @@ def pick_unvisited_child(node: "Node") -> Node:
     """
 
     if is_using_prior:
-        unvisited = node.unvisited_children(num_prior_visits)
+        unvisited = node.unvisited_children(num_prior_visits * 2)
     else:
         unvisited = node.unvisited_children()
     # shuffle(unvisited)
@@ -409,18 +410,43 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity, use_slow_cu
     # of visits and the updated q_score
     global is_using_prior
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
+        # update_with_minimax(node, outer_cutoff)
+
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
         node.branching = len(node.friend_transitions) * len(node.enemy_transitions)
+        prune_transitions(node, outer_cutoff)
+        update_with_matrix_and_priors(node)
         
-        if use_slow_culling:
-            update_with_pruned_matrix(node, node_cutoff)
-        elif is_using_prior:
-            prune_transitions(node, outer_cutoff)
-            update_with_matrix_and_priors(node)
-        else:
-            prune_transitions(node, outer_cutoff)
-            update_with_matrix_and_priors(node)
+        # if use_slow_culling:
+        #     update_with_pruned_matrix(node, node_cutoff)
+        # elif is_using_prior:
+        #     prune_transitions(node, outer_cutoff)
+        #     update_with_matrix_and_priors(node)
+        # else:
+        #     prune_transitions(node, outer_cutoff)
+        #     update_with_matrix_and_priors(node)
+
+def update_with_minimax(node: Node, outer_cutoff):
+    minimax_tree = minimax_paranoid_reduction_tree(node)
+    minimax_tree_len = len(minimax_tree)
+    node.matrix = []
+    for i in range(min(outer_cutoff, minimax_tree_len)):
+        fr_score, fr_transition, min_row = heappop(minimax_tree)
+        # node.friend_transitions.append(fr_transition)
+        min_row_len = len(min_row)
+        node.branching = minimax_tree_len * min_row_len
+        matrix_row = []
+        for j in range(min(outer_cutoff, min_row_len)):
+            score_ij, en_transition, node_ij = heappop(min_row)
+            node_ij.parent = node
+            update_priors(node_ij, score_ij)
+            matrix_row.append(node_ij)
+        node.matrix.append(matrix_row)
+            # if j == 0:
+                # node.enemy_transitions.append(en_transition)
+
+    # new_fr_transitions = 
 
 def prune_transitions(node: Node, outer_cutoff):
     fr_greedy_transition = eval.greedy_choose(node, is_friend=True)
@@ -516,7 +542,6 @@ def update_with_matrix(node: Node):
 
 
 def update_with_matrix_and_priors(node: Node):
-    global num_prior_visits
     node.matrix = []
     for i in range(len(node.friend_transitions)):
         row = []
@@ -525,13 +550,17 @@ def update_with_matrix_and_priors(node: Node):
             updated_node.update(
                 node.friend_transitions[i], node.enemy_transitions[j])
             updated_node.parent = node
-            updated_node_score = eval.evaluate_state(updated_node)
-            tanh_score = np.tanh(updated_node_score*0.005)
-            updated_node.num_visits = num_prior_visits
-            updated_node.q_value = tanh_score * num_prior_visits
+            updated_node_score = eval.evaluate_state_fast(updated_node)
+            update_priors(updated_node, updated_node_score)
             row.append(updated_node)
         node.matrix.append(row)
 
+def update_priors(node: Node, score):
+    global num_prior_visits
+    tanh_score = np.tanh(score*0.005)
+    node.num_visits = num_prior_visits
+    node.q_value = tanh_score * num_prior_visits
+    return
 
 def update_with_pruned_matrix(node: Node, node_cutoff):
 

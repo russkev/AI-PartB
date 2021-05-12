@@ -33,7 +33,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
-        self.norm = norm(500, 200)
+        self.norm = norm(550, 200)
 
     def action(self):
         """
@@ -57,9 +57,9 @@ class Player:
                 result = monte_carlo_tree_search(
                     self.root, 
                     playout_amount = 3, 
-                    node_cutoff = 3,
-                    outer_cutoff = 3,
-                    num_iterations = 900, 
+                    node_cutoff = 6,
+                    outer_cutoff = 6,
+                    num_iterations = 1000, 
                     turn_time = 0.85, 
                     exploration_constant = 0.8,
                     use_slow_culling = False,

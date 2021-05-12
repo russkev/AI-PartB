@@ -83,6 +83,24 @@ def evaluate_state(game_state: GameState, weights=None):
 
     return result
 
+def evaluate_state_fast(game_state: GameState):
+    # Distance to killable pieces score (fast) (TODO should be non-linear I think)
+    dist_to_killable_score_friend = distance_to_killable_score(game_state, is_friend=True)
+    dist_to_killable_score_enemy = distance_to_killable_score(game_state, is_friend=False)
+    dist_to_killable_score_diff = dist_to_killable_score_friend - dist_to_killable_score_enemy
+
+    # Number opponents killed (fast)
+    num_killed_diff = num_opponents_killed_difference(game_state)
+
+    scores = [dist_to_killable_score_diff, num_killed_diff]
+    weights = [10, 200]
+
+    result = np.dot(scores, weights)
+
+    return result
+
+
+
 def greedy_choose(game_state: GameState, weights=None, is_friend=True):
     ref_transitions = game_state.next_friend_transitions() if is_friend else game_state.next_enemy_transitions()
     multiplier = -1 if is_friend else 1

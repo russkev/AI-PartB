@@ -80,7 +80,7 @@ class Node(GameState):
         for i in range(len(self.matrix)):
             for j in range(len(self.matrix[0])):
                 child: Node = self.matrix[i][j]
-                if child.num_visits == num_prior_visits:
+                if child.num_visits <= num_prior_visits:
                     unvisited.append(child)
         return unvisited
 
