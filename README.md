@@ -1,5 +1,8 @@
 # Introduction
+## Team: Google Me 
 AI assignment for COMP30024 Artificial Intelligence at the University of Melbourne.
+
+The agent for submission is called **google_me**. i.e. to test it you need to navigate to the `src` folder and run `python3 -m referee google_me <agent_name>`
 
 The goal of the assignment was to create an AI that could successfully play and win a game called "RoPaSci360", a novel board game that involves a hexagonal grid and tokens representing either "Rock", "Paper" or "Scissors".
 
@@ -20,7 +23,7 @@ The rest of the modules are different player types and can be made to play each 
 
 # Running the simulation
   - Access the `src/` folder from the command line
-  - Run `python3 -m referee rando google_me`
+  - Run `python3 -m referee google_me greedy`
   - For other strategies, replace `rando` and `google_me` with the appropriate player type.
   - Successfully running the code will cause all moves, along with statistics about them to be printed to the terminal. An example turn is illustrated below:
 
