@@ -33,7 +33,7 @@ class Player:
         self.root = Node(GameState(is_upper=(player == "upper")))
         self.root.pruning_is_aggressive = True
         self.start_time = self.end_time = self.time_consumed = 0
-        self.norm = norm(550, 200)
+        self.norm = norm(430, 200)
 
     def action(self):
         """
