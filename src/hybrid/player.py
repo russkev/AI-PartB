@@ -43,6 +43,9 @@ class Player:
 
         minimax_probability = self.norm.cdf(self.root.branching)
         use_minimax = boolean_from_probability(minimax_probability)
+        if self.time_consumed > 53:
+            # Time is starting to run low, use the faster option
+            use_minimax=True
 
         if self.time_consumed < 59:
             if self.root.turn < 4:
