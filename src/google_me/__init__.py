@@ -4,10 +4,8 @@ Semester 1, 2021
 Project Part B
 David Peel 964682
 Kevin Russell 1084088
-"""
 
 
-"""
-Import the player to use as the main strategy for the assignment
+MAIN STRATEGY FOR ASSIGNMENT
 """
 from hybrid.player import Player

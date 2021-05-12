@@ -6,6 +6,9 @@ from state.location import distance
 
 
 class EvaluationFeatures:
+    """
+    Evaluation features used in machine learning process
+    """
 
     middle_coords = {(0,0), (0,-1), (1,-1), (1,0), (0,1), (-1,1), (-1,0)}
     semi_middle_coords = {
@@ -28,8 +31,6 @@ class EvaluationFeatures:
         self.throw_diff = 0
         self.death_diff = 0
 
-        # self.friend_throws = 0
-        # self.friend_deaths = 0
         self.friend_has_kill_from_throw = 0  # bool
         self.friend_count_kill_from_throw = 0
         self.friend_has_kill_from_non_throw = 0  # bool
@@ -39,12 +40,8 @@ class EvaluationFeatures:
         self.friend_dist_to_all_kills = 0
         self.friend_has_invicible = 0
         self.friend_count_mid = 0
-        # self.friend_count_semi_mid = 0
-        # self.friend_count_semi_outer = 0
-        # self.friend_count_outer = 0
 
-        # self.enemy_throws = 0
-        # self.enemy_deaths = 0
+
         self.enemy_has_kill_from_throw = 0  # bool
         self.enemy_count_kill_from_throw = 0
         self.enemy_has_kill_from_non_throw = 0  # bool
@@ -54,19 +51,12 @@ class EvaluationFeatures:
         self.enemy_dist_to_all_kills = 0
         self.enemy_has_invicible = 0
         self.enemy_count_mid = 0
-        # self.enemy_count_semi_mid = 0
-        # self.enemy_count_semi_outer = 0
-        # self.enemy_count_outer = 0
+
 
     def calculate_features(self, game_state):
         # battles
         self.throw_diff = game_state.friend_throws - game_state.enemy_throws
         self.death_diff = self.__count_kills(game_state, True) - self.__count_kills(game_state, False)
-        # self.friend_throws = game_state.friend_throws
-        # self.friend_deaths = self.__count_kills(game_state, True)
-
-        # self.enemy_throws = game_state.enemy_throws
-        # self.enemy_deaths = self.__count_kills(game_state, False)
 
         # actions
         self.friend_has_kill_from_throw, self.friend_count_kill_from_throw = self.__kill_from_throw_values(game_state, True)
@@ -88,7 +78,6 @@ class EvaluationFeatures:
         self.friend_has_invicible, self.enemy_has_invicible = self.__has_invincible(game_state, True)
 
     def to_vector(self):
-        # result = np.empty(len(self.__dict__), dtype=int)
         result = [0] * len(self.__dict__)
         for i, key in enumerate(self.__dict__):
             result[i] = self.__dict__[key]

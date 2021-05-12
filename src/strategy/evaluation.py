@@ -3,7 +3,6 @@ from state.token import defeat_token
 from state.location import distance
 import numpy as np
 from heapq import heappush, heappop
-from time import time
 from state.token import defeat_by_token
 
 def evaluate_state_normalised(game_state: GameState):
@@ -76,7 +75,6 @@ def evaluate_state(game_state: GameState, weights=None):
             500,    # invincible_diff
         ]
 
-    # final_scores = np.multiply(scores, weights)
 
 
     result = np.dot(scores, weights)
@@ -167,9 +165,6 @@ def pieces_in_throw_range(game_state: GameState, is_friend):
         pieces = game_state.enemies
         is_upper = not game_state.is_upper
     count = 0
-
-    # if (is_friend and game_state.is_upper) or (not is_friend and not game_state.is_upper):
-    #     return 
 
     if is_upper and (opponent_throws < game_state.MAX_THROWS):
         for (r, _) in pieces.keys():
@@ -311,15 +306,6 @@ def num_can_be_move_killed(game_state: GameState, move_to_pieces, is_friend):
             if defeat_by_token(curr_tokens[0]) in move_to_pieces[curr_loc]:
                 count += len(curr_tokens)
     return count
-
-    # for curr_loc, curr_tokens in reference.items():
-    #     if curr_loc in move_to_pieces:
-    #         opponent_token = 
-    #         curr_tokens[0] == defeat_token()
-    #     # for (opponent_token, opponent_loc) in move_to_pieces:
-    #     #     if curr_loc == opponent_loc and curr_tokens[0] == defeat_token(opponent_token):
-    #     #         count += len(curr_tokens)
-    # return count
 
 existing_moves = set()
 

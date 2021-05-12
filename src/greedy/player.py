@@ -8,8 +8,6 @@ Kevin Russell 1084088
 
 from state.game_state import GameState
 import strategy.evaluation as eval
-import numpy as np
-
 
 class Player:
 
@@ -29,16 +27,10 @@ class Player:
         Called at the beginning of each turn. Based on the current state
         of the game, select an action to play this turn.kev
         """
-        return eval.greedy_choose(self.game_state, weights=[
-            10,     # dist_to_killable_score_diff
-            200,    # num_killed_diff
-            -15,    # num_useless_diff
-            -30,    # pieces_on_board_diff
-            -25,    # pieces_in_throw_range_diff
-            -25,    # pieces_in_move_range_diff
-            -3,     # distance_from_safeline_diff
-            500,    # invincible_diff
-        ])
+        # takes about 0.002s per turn
+        choice = eval.greedy_choose(self.game_state)
+
+        return choice
 
     def update(self, opponent_action, player_action):
         """
@@ -49,4 +41,4 @@ class Player:
         and player_action is this instance's latest chosen action.
         """
         self.game_state.update(player_action, opponent_action)
-        
+        something = 5

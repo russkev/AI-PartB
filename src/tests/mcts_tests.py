@@ -17,7 +17,6 @@ def test_1():
     node = Node(state)
     node.friend_throws = 9
     node.enemy_throws = 9
-    # node.is_friend=True
 
     node.friends = {(-3, 0): ['r'], (3, 1): ['s']}
     node.enemies = {(-4, 0): ['s'], (-4, 4): ['p']}

@@ -57,7 +57,7 @@ class Player:
                    outer_cutoff=4,
                    num_iterations=9000,
                    turn_time=0.8,
-                   exploration_constant=0.2,
+                   exploration_constant=1.7,
                    use_slow_culling=False,
                    verbosity=0,
                    use_prior=True,

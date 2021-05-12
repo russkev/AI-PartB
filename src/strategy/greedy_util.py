@@ -11,7 +11,7 @@ from state.token import defeats
 from state.location import distance
 
 """
-For generic components of the greedy implementation
+Generic components of the greedy implementation
 """
 
 

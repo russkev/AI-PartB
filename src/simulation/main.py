@@ -4,6 +4,11 @@ Semester 1, 2021
 Project Part B
 David Peel 964682
 Kevin Russell 1084088
+
+Simulation program
+
+Takes two agents and an optional simulation amount as inputs from the command line.
+Runs simulated games the specified number of times.
 """
 
 import sys, subprocess
@@ -34,6 +39,7 @@ def main():
     game_outcome = 0.5
 
     for i in range(iterations):
+        # Run the simulation
         game_result = subprocess.run(
             ["python3", "-m", "referee", upper, lower, "-v" "0"],
             stdout=PIPE,
@@ -42,8 +48,8 @@ def main():
 
         result = game_result.stdout[2:-1]
         winning_algorithm = ""
-        # discard_range = result.find('*') + 2
-        # result = result[discard_range:]
+
+        # Print results for this simulations
         if result == "winner: upper":
             winning_algorithm = upper
             num_upper_wins += 1
@@ -59,7 +65,6 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow([game_outcome])
 
-        # print("Game: {}, result: {}, {}".format(i, result, winning_algorithm))
         print(f"Game: {i}, result: {result}, {winning_algorithm}")
     
     upper_win_ratio = num_upper_wins / iterations
@@ -67,23 +72,9 @@ def main():
     lower_win_ratio = num_lower_wins / iterations
     draw_ratio = num_draws / iterations
 
+    # Print the final results
     print(f"\nUpper wins: {num_upper_wins}/{iterations}, with ratio: {upper_win_ratio:.2f}")
     print(f"Lower wins: {num_lower_wins}/{iterations}, with ratio: {lower_win_ratio:.2f}")
     print(f"Draws: {num_draws}/{iterations}, with ratio: {draw_ratio:.2f}")
 
-
-
-    # parser = argparse.ArgumentParser(
-    #     description = "Process player arguments")
-    
-    # positionals = parser.add_argument_group(title="players")
-    
-    # for num, col in enumerate(["Upper", "Lower"], 1):
-    #     positionals.add_argument(f"player{num}_loc", metavar=col)
-
-    # # parser.add_argument("player 1", type = str)
-    # # parser.add_argument("player 2", type = str)
-    # parser.parse_args()
-
     return
-

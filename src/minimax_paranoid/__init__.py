@@ -6,4 +6,4 @@ David Peel 964682
 Kevin Russell 1084088
 """
 
-from hybrid_3.player import Player
+from minimax_paranoid.player import Player

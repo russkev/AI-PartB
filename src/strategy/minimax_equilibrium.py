@@ -135,39 +135,3 @@ def __row_scores_recursive(
                 curr_state, next_fr_transitions, depth-1, cutoff_range)
         row.append(curr_score)
     return row, best_score
-
-
-# def __evaluate_all_moves(game_state: GameState, fr_transitions, depth, cutoff_range):
-#     weights = [1, 100, -10, -5, -1, -0.1]
-
-#     # if depth == 0:
-#     #     score = evaluate_state(game_state)
-#     #     return None, score
-
-#     goal_score = goal_reward(game_state)
-#     if goal_score is not None:
-#         return None, goal_score * 200
-
-#     en_transitions = game_state.next_enemy_transitions()
-
-#     value_matrix = []
-
-#     best_score = float("-inf")
-
-#     for fr_transition in fr_transitions:
-#         row = __row_scores(game_state, fr_transition, en_transitions)
-#         # row = []
-#         # for en_transition in en_transitions:
-#         #     state_ij = game_state.copy()
-#         #     state_ij.update(fr_transition, en_transition)
-#         #     score_ij, = evaluate_state(state_ij, weights)
-#         #     if score_ij > best_score:
-#         #         best_score = score_ij
-#         #     if score_ij > best_score - cutoff_range:
-#         #         fr_transitions_ij = state_ij.next_friend_transitions()
-#         #         _, score_ij = evaluate_all_moves(
-#         #             state_ij, fr_transitions_ij, depth-1, cutoff_range)
-#         #     row.append(score_ij)
-#         value_matrix.append(row)
-
-#     return solve_game(value_matrix)

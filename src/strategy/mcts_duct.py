@@ -40,7 +40,6 @@ from strategy.minimax import minimax_paranoid_reduction_tree
 import numpy as np
 from state.node_mcts_duct import Node
 DEBUG_MODE = False
-# NUM_PRIOR_VISITS = 4
 USE_PRUNING = True
 NUM_TO_KEEP = 5
 rollout_count = 0
@@ -302,8 +301,8 @@ def choose_winner(node: Node):
     best_j = 0
     row_indices = list(range(len(node.matrix)))
     col_indices = list(range(len(node.matrix[0])))
-    # shuffle(row_indices)
-    # shuffle(col_indices)
+    shuffle(row_indices)
+    shuffle(col_indices)
 
     for i in row_indices:
         _, row_num_visits, _ = sum_stats(node, i, is_row=True)
@@ -417,11 +416,9 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity, use_slow_cu
     
     Add them to the node matrix as children.
     """
-    # TODO for USE_PRIOR, figure out whether the parent needs to be updated with the new number
-    # of visits and the updated q_score
+
     global is_using_prior
     if len(node.friend_transitions) == 0 and len(node.enemy_transitions) == 0:
-        # update_with_minimax(node, outer_cutoff)
 
         node.friend_transitions = node.next_friend_transitions()
         node.enemy_transitions = node.next_enemy_transitions()
@@ -429,35 +426,27 @@ def add_children(node: "Node", node_cutoff, outer_cutoff, verbosity, use_slow_cu
         prune_transitions(node, outer_cutoff)
         update_with_matrix_and_priors(node)
         
-        # if use_slow_culling:
-        #     update_with_pruned_matrix(node, node_cutoff)
-        # elif is_using_prior:
-        #     prune_transitions(node, outer_cutoff)
-        #     update_with_matrix_and_priors(node)
-        # else:
-        #     prune_transitions(node, outer_cutoff)
-        #     update_with_matrix_and_priors(node)
 
 def update_with_minimax(node: Node, outer_cutoff):
+    """
+    Use minimax to cull children.
+
+    """
     minimax_tree = minimax_paranoid_reduction_tree(node)
     minimax_tree_len = len(minimax_tree)
     node.matrix = []
     for i in range(min(outer_cutoff, minimax_tree_len)):
-        fr_score, fr_transition, min_row = heappop(minimax_tree)
-        # node.friend_transitions.append(fr_transition)
+        _, _, min_row = heappop(minimax_tree)
         min_row_len = len(min_row)
         node.branching = minimax_tree_len * min_row_len
         matrix_row = []
         for j in range(min(outer_cutoff, min_row_len)):
-            score_ij, en_transition, node_ij = heappop(min_row)
+            score_ij, _, node_ij = heappop(min_row)
             node_ij.parent = node
             update_priors(node_ij, score_ij)
             matrix_row.append(node_ij)
         node.matrix.append(matrix_row)
-            # if j == 0:
-                # node.enemy_transitions.append(en_transition)
 
-    # new_fr_transitions = 
 
 def prune_transitions(node: Node, outer_cutoff):
     fr_greedy_transition = eval.greedy_choose(node, is_friend=True)
@@ -582,8 +571,6 @@ def update_priors(node: Node, score):
 def update_with_pruned_matrix(node: Node, node_cutoff):
 
     fr_scores, en_scores = __get_prune_scores_slow(node)
-    # fr_scores, en_scores = __get_prune_scores_quick(node)
-
 
     node.matrix = []
     new_fr_transitions = []

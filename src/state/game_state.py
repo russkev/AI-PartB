@@ -142,7 +142,6 @@ class GameState:
 
             else:
                 # move indexes are move type, start location, end location
-                # token = reference[move[1]].pop()  # get one of the tokens at the location
                 token = GameState.__pop(reference, move[1])
                 reference[move[2]] = reference[move[2]] + [token] if move[2] in reference else [token]  # add token to location
                 
