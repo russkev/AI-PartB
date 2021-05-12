@@ -48,6 +48,8 @@ rollout_count = 0
 exp_constant = 0.8 # np.sqrt(2)
 start_time = end_time = time_consumed = 0
 is_using_prior = False
+is_using_fast_rollout_eval=False
+is_using_fast_prune_eval=False
 num_prior_visits = 4
 
 def start_timer():
@@ -73,6 +75,8 @@ def monte_carlo_tree_search(
         verbosity=0,
         use_prior=True,
         num_priors=4,
+        use_fast_rollout_eval=False,
+        use_fast_prune_eval=False
     ) -> Node:
     """
     Entry point for the Monte Carlo Tree Search. This could run for ever so either a timer or
@@ -80,13 +84,16 @@ def monte_carlo_tree_search(
     """
 
 
-    global rollout_count, start_time, exp_constant, is_using_prior, num_prior_visits
+    global rollout_count, start_time, exp_constant, is_using_prior, num_prior_visits, \
+        is_using_fast_prune_eval, is_using_fast_rollout_eval
     if exploration_constant != 0:
         exp_constant=exploration_constant
     start_time = time()
     root.parent = None
     is_using_prior = use_prior
     num_prior_visits = num_priors
+    is_using_fast_rollout_eval = use_fast_rollout_eval
+    is_using_fast_prune_eval = use_fast_prune_eval
     while (time() < start_time + turn_time and root.num_visits < num_iterations):
         # A leaf node of the current frontier, does not include nodes visited in the rollout stage
         leaf = traverse(root, node_cutoff, outer_cutoff, verbosity, use_slow_culling)
@@ -211,8 +218,12 @@ def evaluate_state_ternary(game_state: GameState):
          0  if a draw is likely
         -1  if a lose is likely
     """
+    global is_using_fast_rollout_eval
 
-    final_score = eval.evaluate_state(game_state)
+    if is_using_fast_rollout_eval:
+        final_score = eval.evaluate_state_fast(game_state)
+    else:
+        final_score = eval.evaluate_state(game_state)
     if final_score > 0:
         return 1
     elif final_score == 0:
@@ -452,6 +463,9 @@ def prune_transitions(node: Node, outer_cutoff):
     fr_greedy_transition = eval.greedy_choose(node, is_friend=True)
     en_greedy_transition = eval.greedy_choose(node, is_friend=False)
 
+    global is_using_fast_prune_eval
+    evaluate_state_function = eval.evaluate_state_fast if is_using_fast_prune_eval else eval.evaluate_state
+
     # Shuffle so that states with equal scores have equal chance of being picked
     shuffle(node.friend_transitions)
     shuffle(node.enemy_transitions)
@@ -462,14 +476,14 @@ def prune_transitions(node: Node, outer_cutoff):
     for i, fr_transition in enumerate(node.friend_transitions):
         state = node.copy()
         state.update(fr_transition, en_greedy_transition)
-        score = score_with_repeated_state_check(node, eval.evaluate_state(state))
+        score = score_with_repeated_state_check(node, evaluate_state_function(state))
         heappush(fr_scores, (-1 * score, i))
     
     for j, en_transition in enumerate(node.enemy_transitions):
         state = node.copy()
         state.update(fr_greedy_transition, en_transition)
-        score = eval.evaluate_state(state)
-        heappush(en_scores, (+1 * eval.evaluate_state(state), j))
+        score = evaluate_state_function(state)
+        heappush(en_scores, (+1 * score, j))
     
     new_fr_transitions = []
     new_en_transitions = []
@@ -543,6 +557,9 @@ def update_with_matrix(node: Node):
 
 def update_with_matrix_and_priors(node: Node):
     node.matrix = []
+    global is_using_fast_prune_eval
+    evaluate_state_function = eval.evaluate_state_fast if is_using_fast_prune_eval else eval.evaluate_state
+
     for i in range(len(node.friend_transitions)):
         row = []
         for j in range(len(node.enemy_transitions)):
@@ -550,7 +567,7 @@ def update_with_matrix_and_priors(node: Node):
             updated_node.update(
                 node.friend_transitions[i], node.enemy_transitions[j])
             updated_node.parent = node
-            updated_node_score = eval.evaluate_state_fast(updated_node)
+            updated_node_score = evaluate_state_function(updated_node)
             update_priors(updated_node, updated_node_score)
             row.append(updated_node)
         node.matrix.append(row)
@@ -601,6 +618,9 @@ def __get_prune_scores_slow_for_side(node: Node, is_friend):
     ref_transitions = node.friend_transitions if is_friend else node.enemy_transitions
     multiplier = -1 if is_friend else 1
     scores = []
+    global is_using_fast_prune_eval
+    evaluate_state_function = eval.evaluate_state_fast if is_using_fast_prune_eval else eval.evaluate_state
+
     for i, ref_transition in enumerate(ref_transitions):
         updated_node = node.copy_node_state()
         if is_friend:
@@ -613,7 +633,7 @@ def __get_prune_scores_slow_for_side(node: Node, is_friend):
             temp_node.update(enemy_transition=ref_transition)
             opp_transition = eval.greedy_choose(node, is_friend=True)
             updated_node.update(opp_transition, ref_transition)
-        score = eval.evaluate_state(updated_node)
+        score = evaluate_state_function(updated_node)
         if is_friend:
             if updated_node.existing_moves.limit_is_close:
                 score -= 500
@@ -625,32 +645,6 @@ def __get_prune_scores_slow_for_side(node: Node, is_friend):
         heappush(scores, (multiplier * score, i))
     return scores
 
-
-# def make_updated_node_with_prior(node: Node, friend_transition, enemy_transition, num_prior_visits):
-#     """
-#     Make new node and give it existing visited and q_value counts based on the evaluation function
-#     return.
-#     """
-#     updated_node = node.copy_node_state()
-#     updated_node.update(friend_transition, enemy_transition)
-#     updated_node.parent = node
-#     updated_node.evaluation_score = eval.evaluate_state(updated_node)
-#     # sigmoid_val = sigmoid(evaluation, 0.005)
-#     tanh_val = np.tanh(updated_node.evaluation_score*0.005)
-#     updated_node.num_visits = num_prior_visits
-#     updated_node.q_value = int(tanh_val * num_prior_visits)
-    
-#     return updated_node
-
-# def make_updated_node_with_eval_score(node: Node, friend_transition, enemy_transition):
-#     """
-#     Make new node and give it the evaluation score
-#     """
-#     updated_node = node.copy_node_state()
-#     updated_node.update(friend_transition, enemy_transition)
-#     updated_node.parent = node
-#     updated_node.evaluation_score = eval.evaluate_state(updated_node)
-#     return updated_node
 
 def sigmoid(x, b):
     """

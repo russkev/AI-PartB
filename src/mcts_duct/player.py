@@ -59,14 +59,16 @@ class Player:
                 self.root, 
                 playout_amount = 3, 
                 node_cutoff = 6,
-                outer_cutoff = 3,
+                outer_cutoff = 6,
                 num_iterations = 9000, 
-                turn_time = 0.5, 
+                turn_time = 1, 
                 exploration_constant = 0.8,
                 use_slow_culling = False,
                 verbosity = 1,
                 use_prior = True,
-                num_priors = 10,
+                num_priors = 4,
+                use_fast_prune_eval=False,
+                use_fast_rollout_eval=False,
             )
 
         self.end_timer()
