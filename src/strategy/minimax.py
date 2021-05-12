@@ -2,115 +2,55 @@ import math
 import copy
 import random
 from state.game_state import GameState
-from strategy.evaluation import evaluate_state, evaluate_state_normalised
-from strategy.ml_evaluation import evaluate
-from heapq import heappush, heappop
+from strategy.evaluation import evaluate_state, 
+from heapq import heappush
 
 def minimax_paranoid_reduction(game_state):
-    state_tree = build_state_tree(game_state)
-    results = []
-    for f_move in state_tree:
-        results.append((f_move[0], min_layer(f_move[1])))
-    result = state_tree[max_layer(results)]
-    return result[0]
+    """
+    Return the minimax result
+    
+    Use a slightly faster algorithm that doesn't build a complete state tree
+    """
+    return build_state_tree_fast(game_state)
 
-def minimax_paranoid_reduction_2(game_state):
-    # return build_state_tree_2(game_state)
-
-    state_tree = build_state_tree_3(game_state)
-    _, move, _ = state_tree[0]
-    return move
-    # state_tree = build_state_tree_2(game_state)
-    # score, f_move = state_tree[0]
-    # return f_move
+def minimax_paranoid_reduction_tree(game_state):
+    """
+    Return the entire state tree
+    """
+    return build_state_tree(game_state)
 
 
-    # results = []
-    # for f_move in state_tree:
-    #     score, move = heappop(f_move[1])
-    #     heappush(results, (-score, f_move[0]))
-    # negative_best_score, best_move,  = heappop(results)
-    return best_move
 
-def minimax_with_ml(game_state):
-    state_tree = build_state_tree(game_state)
-    results = []
-    for f_move in state_tree:
-        results.append((f_move[0], min_layer(f_move, f_move[1])))
 
-    return state_tree[max_layer(results)][0]
-
-def min_layer(responses):
-    scores = []
-    for response in responses:
-        scores.append(response[1])
-    return min(scores)
-
-def max_layer(moves):
-    max_index = 0
-    for i, m in enumerate(moves[1:]):
-        if m[1] > moves[max_index][1]:
-            max_index = i + 1
-    return max_index
-
-def build_state_tree(game_state: GameState):
+def build_state_tree_fast(game_state: GameState):
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
-    minimax_tree = []
-
-    random.shuffle(f_moves)
-    random.shuffle(e_moves)
-
-    for i, f_move in enumerate(f_moves):
-
-        eval_offset = repeated_state_offset(game_state, f_move)
-
-        minimax_tree.append((f_move, []))
-        for _, e_move in enumerate(e_moves):
-            game_state_ij = game_state.copy()
-            game_state_ij.update(f_move, e_move)
-            game_state_ij.branching = len(f_moves) * len(e_moves)
-            eval_score = evaluate_state(game_state_ij)
-            minimax_tree[i][1].append((e_move,  eval_score + eval_offset))
-
-    return minimax_tree
-
-
-def build_state_tree_2(game_state: GameState):
-    f_moves = game_state.next_transitions_for_side(True)
-    e_moves = game_state.next_transitions_for_side(False)
-    # minimax_tree = []
 
     random.shuffle(f_moves)
     random.shuffle(e_moves)
 
     max_score = float("-inf")
     max_move = f_moves[0]
-    for i, f_move in enumerate(f_moves):
+    for f_move in f_moves:
 
         eval_offset = repeated_state_offset(game_state, f_move)
-
-        # minimax_tree.append((f_move, []))
-        row = []
         min_score = float("inf")
-        for _, e_move in enumerate(e_moves):
+
+        for e_move in e_moves:
             game_state_ij = game_state.copy()
             game_state_ij.update(f_move, e_move)
             game_state_ij.branching = len(f_moves) * len(e_moves)
             eval_score = evaluate_state(game_state_ij)
             if eval_score < min_score:
                 min_score = eval_score
-            # heappush(row, (eval_score + eval_offset, e_move))
 
-        # score, _ = row[0]
-        # heappush(minimax_tree, (-score, f_move))
         if min_score + eval_offset > max_score :
             max_score = min_score + eval_offset
             max_move = f_move
 
     return max_move
 
-def build_state_tree_3(game_state: GameState):
+def build_state_tree(game_state: GameState):
     f_moves = game_state.next_transitions_for_side(True)
     e_moves = game_state.next_transitions_for_side(False)
     game_state.branching = len(f_moves) * len(e_moves)
@@ -134,10 +74,6 @@ def build_state_tree_3(game_state: GameState):
     return minimax_tree
 
 
-
-
-
-
 def repeated_state_offset(game_state: GameState, fr_transition):
     temp_state = game_state.copy()
     temp_state.update(fr_transition)
@@ -148,47 +84,6 @@ def repeated_state_offset(game_state: GameState, fr_transition):
     else:
         return 0
 
-
-def build_state_tree_with_ml(game_state: GameState):
-    f_moves = game_state.next_transitions_for_side(True)
-    e_moves = game_state.next_transitions_for_side(False)
-    minimax_tree = []
-
-    random.shuffle(f_moves)
-    random.shuffle(e_moves)
-
-    for i, f_move in enumerate(f_moves):
-        minimax_tree.append((f_move, []))
-        for j, e_move in enumerate(e_moves):
-            game_state_ij = game_state.copy()
-            game_state_ij.update(f_move, e_move)
-            eval_score = evaluate(game_state_ij)
-            minimax_tree[i][1].append((e_move,  eval_score))
-
-    return minimax_tree
-
-
-
-
-
-
-
-# def minimax(node, depth, maximising_player):
-#     print(node)
-#     if depth == 0:
-#         return node
-    
-#     if maximising_player:
-#         value = -math.inf
-#         for move in node[1]:
-#             value = max(value, minimax(move, depth - 1, False))
-#         return value
-
-#     else:
-#         value = math.inf
-#         for move in node[1]:
-#             value = min(value, minimax(move, depth - 1, True))
-#         return value
 
 if __name__ == '__main__':
     # g = [
